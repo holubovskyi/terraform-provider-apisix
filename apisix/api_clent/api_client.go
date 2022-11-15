@@ -48,6 +48,7 @@ func parseHttpResult(res *http.Response, body []byte) (int, []byte, error) {
 	log.Printf("[DEBUG] Got body: %v", string(body))
 
 	var result map[string]interface{}
+	//var result interface{}
 	err := json.Unmarshal(body, &result)
 
 	if err != nil {
@@ -57,15 +58,16 @@ func parseHttpResult(res *http.Response, body []byte) (int, []byte, error) {
 	if res.StatusCode >= 400 {
 
 		errorMessage := "No message"
-		if result["error_msg"] != nil {
-			errorMessage = result["error_msg"].(string)
-		}
+		//if result["error_msg"] != nil {
+		//	errorMessage = result["error_msg"].(string)
+		//}
 
 		return res.StatusCode, []byte(errorMessage), fmt.Errorf("can't make request, cause: %v", errorMessage)
 	}
 
-	node := result["node"].(map[string]interface{})
-	value := node["value"].(map[string]interface{})
+	//node := result["node"].(map[string]interface{})
+	//value := node["value"].(map[string]interface{})
+	value := result["value"].(map[string]interface{})
 	item, err := json.Marshal(value)
 	return res.StatusCode, item, err
 }

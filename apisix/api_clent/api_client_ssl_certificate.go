@@ -1,17 +1,17 @@
 package api_clent
 
 func (client ApiClient) GetSslCertificate(id string) (map[string]interface{}, error) {
-	return client.RunObject("GET", "/ssl/"+id, nil)
+	return client.RunObject("GET", "/ssls/"+id, nil)
 }
 
 func (client ApiClient) CreateSslCertificate(data map[string]interface{}) (map[string]interface{}, error) {
-	return client.RunObject("POST", "/ssl/", &data)
+	return client.RunObject("POST", "/ssls/", &data)
 }
 
 func (client ApiClient) UpdateSslCertificate(id string, data map[string]interface{}) (map[string]interface{}, error) {
-	return client.RunObject("PATCH", "/ssl/"+id, &data)
+	return client.RunObject("PATCH", "/ssls/"+id, &data)
 }
 
 func (client ApiClient) DeleteSslCertificate(id string) (err error) {
-	return client.Delete("/ssl/" + id)
+	return client.Delete("/ssls/" + id)
 }
