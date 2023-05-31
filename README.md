@@ -1,8 +1,7 @@
-# terraform-provider-apisix
+# Terraform Apisix Provider
 
-!!!no longer supported by me !!!
+Forked from the https://github.com/JorgeAraujo123/terraform-provider-apisix
 
-Only works from 3.0.0 
 
-Fork from https://github.com/webbankir/terraform-provider-apisix
-Only changed the http response to be able to handle the 3.0.0 apisix api changes
+### Docker Compose
+The Docker compose configuration is from the [apisix-docker](https://github.com/apache/apisix-docker/blob/master/example/docker-compose.yml) repository
