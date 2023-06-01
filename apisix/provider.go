@@ -60,6 +60,8 @@ func (p *apisixProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			},
 			"api_key": schema.StringAttribute{
 				Description: "API Key for Apache APISIX API. May also be provided via APISIX_API_KEY environment variable.",
+				Optional:    true,
+				Sensitive:   true,
 			},
 		},
 	}
@@ -150,7 +152,7 @@ func (p *apisixProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	// Create a new APISIX client using the configuration values
 	client := api_client.GetCl(config.ApiKey.ValueString(), config.Endpoint.ValueString())
-	// TODO: Client shoult return error
+	// TODO: Client should return an error
 	//client, err := api_client.GetCl(config.ApiKey.ValueString(), config.Endpoint.ValueString())
 	// if err != nil {
 	// 	resp.Diagnostics.AddError(
@@ -190,7 +192,9 @@ func (p *apisixProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 // DataSources defines the data sources implemented in the provider.
 func (p *apisixProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewRouteDataSource,
+	}
 }
 
 // func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
