@@ -7,7 +7,6 @@ import (
 
 	"terraform-provider-apisix/apisix"
 
-	//"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

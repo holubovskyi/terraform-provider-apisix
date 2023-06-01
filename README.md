@@ -13,7 +13,7 @@ If the `GOBIN` go environment variable is not set, use the default path, `/Users
 provider_installation {
 
   dev_overrides {
-      "hashicorp.com/edu/hashicups-pf" = "<PATH>"
+      "hashicorp.com/edu/apisix" = "<PATH>"
   }
 
   # For all other providers, install them directly from their origin provider

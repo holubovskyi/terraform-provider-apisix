@@ -9,7 +9,6 @@ require (
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 )
 
-
 require (
 	github.com/hashicorp/go-plugin v1.4.8 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
