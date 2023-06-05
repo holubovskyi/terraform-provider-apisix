@@ -49,9 +49,7 @@ var PluginRedirectRegexSchemaAttribute = tfsdk.Attribute{
 						plan_modifier.DefaultNumber(301),
 					},
 				},
-			},
-				tfsdk.ListNestedAttributesOptions{},
-			),
+			}),
 		},
 	}),
 }

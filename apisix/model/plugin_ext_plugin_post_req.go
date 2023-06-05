@@ -40,7 +40,7 @@ var PluginExtPluginPostReqSchemaAttribute = tfsdk.Attribute{
 					Required: true,
 					Type:     types.StringType,
 				},
-			}, tfsdk.ListNestedAttributesOptions{}),
+			}),
 		},
 	}),
 }
