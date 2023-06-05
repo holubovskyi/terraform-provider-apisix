@@ -39,6 +39,7 @@ func (r ResourceUpstreamType) Create(ctx context.Context, request tfsdk.CreateRe
 		return
 	}
 
+	
 	result, err := r.p.client.CreateUpstream(requestObjectJsonBytes)
 
 	if err != nil {
