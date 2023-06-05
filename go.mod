@@ -1,4 +1,4 @@
-module github.com/webbankir/terraform-provider-apisix
+module terraform-provider-apisix
 
 go 1.12
 

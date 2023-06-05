@@ -2,9 +2,10 @@ package model
 
 import (
 	"encoding/json"
+	"terraform-provider-apisix/apisix/validator"
+
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/validator"
 )
 
 type PluginMetadataLogFormatType struct {

@@ -3,9 +3,10 @@ package validator
 import (
 	"context"
 	"fmt"
+	"terraform-provider-apisix/apisix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
 )
 
 type NumberInSliceType struct {

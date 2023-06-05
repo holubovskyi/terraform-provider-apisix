@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/webbankir/terraform-provider-apisix/apisix/model"
+	"terraform-provider-apisix/apisix/model"
 )
 
 type ResourceUpstreamType struct {

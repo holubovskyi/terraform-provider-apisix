@@ -1,10 +1,11 @@
 package model
 
 import (
+	"terraform-provider-apisix/apisix/plan_modifier"
+	"terraform-provider-apisix/apisix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/plan_modifier"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
 )
 
 type PluginExtPluginPreReqType struct {
