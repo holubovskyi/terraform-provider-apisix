@@ -50,7 +50,7 @@ var PluginRedirectRegexSchemaAttribute = tfsdk.Attribute{
 					},
 				},
 			},
-				tfsdk.ListNestedAttributesOptions{MinItems: 1},
+				tfsdk.ListNestedAttributesOptions{},
 			),
 		},
 	}),

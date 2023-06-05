@@ -68,7 +68,7 @@ var PluginMultiResponseRewriteSchemaAttribute = tfsdk.Attribute{
 					Description: "JSON string",
 				},
 			},
-				tfsdk.ListNestedAttributesOptions{MinItems: 1},
+				tfsdk.ListNestedAttributesOptions{},
 			),
 
 			Validators: []tfsdk.AttributeValidator{
