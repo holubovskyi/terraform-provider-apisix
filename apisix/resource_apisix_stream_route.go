@@ -2,9 +2,10 @@ package apisix
 
 import (
 	"context"
+	"terraform-provider-apisix/apisix/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/webbankir/terraform-provider-apisix/apisix/model"
 )
 
 type ResourceStreamRouteType struct {

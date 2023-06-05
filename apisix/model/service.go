@@ -1,12 +1,13 @@
 package model
 
 import (
+	"reflect"
+	"terraform-provider-apisix/apisix/plan_modifier"
+	"terraform-provider-apisix/apisix/utils"
+	"terraform-provider-apisix/apisix/validator"
+
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/plan_modifier"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
-	"github.com/webbankir/terraform-provider-apisix/apisix/validator"
-	"reflect"
 )
 
 type ServiceType struct {

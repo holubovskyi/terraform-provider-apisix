@@ -1,12 +1,13 @@
 package model
 
 import (
+	"math/big"
+	"terraform-provider-apisix/apisix/plan_modifier"
+	"terraform-provider-apisix/apisix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/plan_modifier"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
-	"math/big"
 )
 
 type UpstreamKeepAlivePoolType struct {

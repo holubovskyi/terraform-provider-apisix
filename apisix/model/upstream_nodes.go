@@ -1,14 +1,15 @@
 package model
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/plan_modifier"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
-	"github.com/webbankir/terraform-provider-apisix/apisix/validator"
 	"math/big"
 	"strconv"
 	"strings"
+	"terraform-provider-apisix/apisix/plan_modifier"
+	"terraform-provider-apisix/apisix/utils"
+	"terraform-provider-apisix/apisix/validator"
+
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type UpstreamNodeType struct {

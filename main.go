@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/webbankir/terraform-provider-apisix/apisix"
+	
+	"terraform-provider-apisix/apisix"
 )
 
 func main() {

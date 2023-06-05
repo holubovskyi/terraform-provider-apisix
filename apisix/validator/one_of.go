@@ -3,10 +3,11 @@ package validator
 import (
 	"context"
 	"fmt"
+	"strings"
+	"terraform-provider-apisix/apisix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	"github.com/webbankir/terraform-provider-apisix/apisix/utils"
-	"strings"
 )
 
 type OneOfType struct {
