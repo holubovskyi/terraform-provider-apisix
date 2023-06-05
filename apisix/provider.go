@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/webbankir/terraform-provider-apisix/apisix/api_clent"
+	"github.com/holubovskyi/apisix-client-go"
 	"os"
 )
 
@@ -17,7 +17,7 @@ func New() tfsdk.Provider {
 
 type provider struct {
 	configured bool
-	client     api_clent.ApiClient
+	client     api_client.ApiClient
 }
 
 func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -59,7 +59,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 
-	p.client = api_clent.GetCl(config.ApiKey.Value, config.Endpoint.Value)
+	p.client = api_client.GetCl(config.ApiKey.Value, config.Endpoint.Value)
 }
 
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
