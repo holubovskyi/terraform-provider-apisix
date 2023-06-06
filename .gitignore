@@ -6,9 +6,6 @@
 
 *.tfstate*
 
-*.tf
-*.tfvars
-
 *.log
 
 /.idea
