@@ -6,9 +6,6 @@
 
 *.tfstate*
 
-*.tf
-*.tfvars
-
 *.log
 
 /.idea
@@ -17,3 +14,6 @@ c.out
 
 .envrc
 test/
+
+*.crt
+*.key
