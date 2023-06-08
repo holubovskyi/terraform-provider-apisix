@@ -2,9 +2,10 @@ package apisix
 
 import (
 	"context"
+	"terraform-provider-apisix/apisix/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"terraform-provider-apisix/apisix/model"
 )
 
 type ResourceUpstreamType struct {
@@ -39,7 +40,6 @@ func (r ResourceUpstreamType) Create(ctx context.Context, request tfsdk.CreateRe
 		return
 	}
 
-	
 	result, err := r.p.client.CreateUpstream(requestObjectJsonBytes)
 
 	if err != nil {

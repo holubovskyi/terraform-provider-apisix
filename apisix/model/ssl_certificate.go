@@ -109,6 +109,7 @@ var SslCertificateSchema = tfsdk.Schema{
 		"labels": {
 			Type:     types.MapType{ElemType: types.StringType},
 			Optional: true,
+			Description: "Attributes of the resource specified as key-value pairs.",
 		},
 		"is_enabled": {
 			Type:     types.BoolType,

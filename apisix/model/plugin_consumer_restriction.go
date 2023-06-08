@@ -86,7 +86,7 @@ var PluginConsumerRestrictionSchemaAttribute = tfsdk.Attribute{
 						validator.StringOfStringInSlice(common.HttpMethods...),
 					},
 				},
-			}, tfsdk.ListNestedAttributesOptions{MinItems: 1}),
+			}),
 		},
 	}),
 	Validators: []tfsdk.AttributeValidator{

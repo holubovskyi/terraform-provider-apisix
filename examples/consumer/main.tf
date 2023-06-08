@@ -20,4 +20,7 @@ resource "apisix_consumer" "example" {
       password = "changeMe"
     }
   }
+  labels = {
+    "version" = "v1"
+  }
 }

@@ -37,7 +37,7 @@ var UpstreamNodesSchemaAttribute = tfsdk.Attribute{
 				plan_modifier.DefaultNumber(1),
 			},
 		},
-	}, tfsdk.ListNestedAttributesOptions{}),
+	}),
 	Validators: []tfsdk.AttributeValidator{
 		validator.ConflictsWith("discovery_type", "service_name"),
 	},
