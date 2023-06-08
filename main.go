@@ -52,7 +52,4 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	// _ = providerserver.Serve(context.Background(), apisix.New, providerserver.ServeOpts{
-	// 	Address: "ashicorp.com/edu/terraform-provoder-apisix",
-	// })
 }

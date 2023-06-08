@@ -72,6 +72,7 @@ func MapValueToMapTypeValue(sMap map[string]interface{}, mapKey string, value *t
 	v := sMap[mapKey]
 
 	if v == nil {
+		value.ElemType = types.StringType
 		value.Null = true
 	} else {
 		values := make(map[string]attr.Value)
