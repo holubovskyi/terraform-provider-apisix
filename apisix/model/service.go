@@ -121,6 +121,7 @@ func ServiceTypeStateToMap(state ServiceType) (map[string]interface{}, error) {
 	utils.ListTypeValueToMap(state.Hosts, output, "hosts")
 	utils.BoolTypeValueToMap(state.EnableWebsocket, output, "enable_websocket")
 	utils.StringTypeValueToMap(state.UpstreamId, output, "upstream_id")
+	utils.MapTypeValueToMap(state.Labels, output, "labels")
 	plugins := make(map[string]interface{})
 	if state.Plugins != nil {
 		statePlugins := state.Plugins
