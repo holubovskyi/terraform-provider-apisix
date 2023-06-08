@@ -41,6 +41,7 @@ func MapValueToListTypeValue(sMap map[string]interface{}, mapKey string, value *
 	v := sMap[mapKey]
 
 	if v == nil {
+		value.ElemType = types.StringType
 		value.Null = true
 	} else {
 		var values []attr.Value
