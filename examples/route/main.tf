@@ -24,7 +24,20 @@ resource "apisix_upstream" "example" {
 
 resource "apisix_route" "example" {
   name        = "testroute"
+  desc        = "Example of the route configuration"
   uri         = "/test"
   hosts       = ["foo.com", "*.bar.com"]
+  remote_addr = "10.0.0.0/8"
   upstream_id = apisix_upstream.example.id
+  methods     = ["GET", "POST"]
+  priority    = 2
+  labels = {
+    "version" : "0.1"
+  }
+  plugins = {
+    ip_restriction = {
+      blacklist = ["10.20.10.77"]
+      message   = "Access denied"
+    }
+  }
 }
