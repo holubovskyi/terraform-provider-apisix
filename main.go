@@ -45,8 +45,7 @@ func main() {
 		Debug:   debug,
 	}
 
-	// err := providerserver.Serve(context.Background(), apisix.New(version), opts)
-	err := providerserver.Serve(context.Background(), apisix.New, opts)
+	err := providerserver.Serve(context.Background(), apisix.New(version), opts)
 
 	if err != nil {
 		log.Fatal(err.Error())
