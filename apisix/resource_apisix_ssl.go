@@ -2,213 +2,288 @@ package apisix
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"fmt"
+
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-apisix/apisix/model"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type ResourceSslCertificateType struct {
-	p provider
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ resource.Resource                   = &sslCertificateResource{}
+	_ resource.ResourceWithConfigure      = &sslCertificateResource{}
+	_ resource.ResourceWithImportState    = &sslCertificateResource{}
+	_ resource.ResourceWithValidateConfig = &sslCertificateResource{}
+)
+
+// NewSSLCertificateResource is a helper function to simplify the provider implementation.
+func NewSSLCertificateResource() resource.Resource {
+	return &sslCertificateResource{}
 }
 
-func (r ResourceSslCertificateType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return ResourceSslCertificateType{
-		p: *(p.(*provider)),
-	}, nil
+// sslCertificateResource is the resource implementation.
+type sslCertificateResource struct {
+	client *api_client.ApiClient
 }
 
-func (r ResourceSslCertificateType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return model.SslCertificateSchema, nil
+// sslCertificateResourceModel maps the resource schema data.
+type sslCertificateResourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	Status      types.Int64  `tfsdk:"status"`
+	Certificate types.String `tfsdk:"certificate"`
+	PrivateKey  types.String `tfsdk:"private_key"`
+	Snis        types.List   `tfsdk:"snis"`
+	Type        types.String `tfsdk:"type"`
+	Labels      types.Map    `tfsdk:"labels"`
 }
 
-func (r ResourceSslCertificateType) Create(ctx context.Context, request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
-	var plan model.SslCertificateType
-
-	diags := request.Plan.Get(ctx, &plan)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-
-	requestObjectJsonBytes, err := model.SslCertificateTypeStateToMap(plan)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Error in transformation from state to map",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	result, err := r.p.client.CreateSslCertificate(requestObjectJsonBytes)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't create new ssl resource",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	newState, err := model.SslCertificateTypeMapToState(result)
-	newState.PrivateKey = types.String{Value: plan.PrivateKey.Value}
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
+// Metadata returns the resource type name.
+func (r *sslCertificateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_ssl_certificate"
 }
 
-func (r ResourceSslCertificateType) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest, response *tfsdk.DeleteResourceResponse) {
-	var state model.SslCertificateType
-
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-
-	err := r.p.client.DeleteSslCertificate(state.ID.Value)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't delete ssl resource",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	response.State.RemoveResource(ctx)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r ResourceSslCertificateType) Read(ctx context.Context, request tfsdk.ReadResourceRequest, response *tfsdk.ReadResourceResponse) {
-	var state model.SslCertificateType
-
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-
-	if state.ID.Null {
-		response.Diagnostics.AddError(
-			"Can't read ssl certificate resource, ID is null",
-			"Unexpected error",
-		)
-		return
-	}
-
-	result, err := r.p.client.GetSslCertificate(state.ID.Value)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't read ssl certificate resource",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	newState, err := model.SslCertificateTypeMapToState(result)
-	newState.PrivateKey = types.String{Value: state.PrivateKey.Value}
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
+// Schema defines the schema for the resource.
+func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Manages SSL certificates.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "Identifier of the certificate.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"certificate": schema.StringAttribute{
+				Description: "HTTPS certificate.",
+				Required:    true,
+			},
+			"private_key": schema.StringAttribute{
+				Description: "HTTPS private key.",
+				Required:    true,
+				Sensitive:   false,
+			},
+			"snis": schema.ListAttribute{
+				MarkdownDescription: "A non-empty array of HTTPS SNI. Required if `type` is `server`",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
+			"type": schema.StringAttribute{
+				MarkdownDescription: "Identifies the type of certificate, default `server`\n" +
+					"`client` Indicates that the certificate is a client certificate, which is used when APISIX accesses the upstream;\n" +
+					"`server` Indicates that the certificate is a server-side certificate, which is used by APISIX when verifying client requests.",
+				Required: true,
+				Validators: []validator.String{
+					// Validate string value must be "server" or "client"
+					stringvalidator.OneOfCaseInsensitive([]string{"server", "client"}...),
+				},
+			},
+			"labels": schema.MapAttribute{
+				Description: "Attributes of the resource specified as key-value pairs.",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"status": schema.Int64Attribute{
+				MarkdownDescription: "Enables the current SSL. Set to `1` (enabled) by default. `1` to enable, `0` to disable",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(1),
+				Validators: []validator.Int64{
+					// Validate integer value must be 0 or 1
+					int64validator.OneOf([]int64{0, 1}...),
+				},
+			},
+		},
 	}
 }
 
-func (r ResourceSslCertificateType) Update(ctx context.Context, request tfsdk.UpdateResourceRequest, response *tfsdk.UpdateResourceResponse) {
-	var state model.SslCertificateType
+// Validate that snis are specified when certificate type is `server`
+func (r *sslCertificateResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data sslCertificateResourceModel
 
-	diags := request.Plan.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	requestObjectJsonBytes, err := model.SslCertificateTypeStateToMap(state)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Error in transformation from state to map",
-			"Unexpected error: "+err.Error(),
+	// Get Certificate type as a string
+	certificateType, diags := data.Type.ToStringValue(ctx)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if certificateType == basetypes.NewStringValue("server") && (data.Snis.IsNull() || len(data.Snis.Elements()) == 0) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("snis"),
+			"Missing Attribute Configuration",
+			"Expected snis to be configured if the certificate type is server",
+		)
+	}
+}
+
+// Configure adds the provider configured client to the resource.
+func (r *sslCertificateResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*api_client.ApiClient)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *api_client.ApiClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
 
-	result, err := r.p.client.UpdateSslCertificate(state.ID.Value, requestObjectJsonBytes)
+	r.client = client
+}
 
+// Create a new resource.
+func (r *sslCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	// Retrieve values from plan
+	var plan sslCertificateResourceModel
+
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Generate API request body from plan
+	var certificate api_client.SSLCertificate
+
+	certificate.Status = uint(plan.Status.ValueInt64())
+	certificate.Certificate = plan.Certificate.ValueString()
+	certificate.PrivateKey = plan.PrivateKey.ValueString()
+	certificate.Type = plan.Type.ValueString()
+
+	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "SSLCertificate struct contains:", map[string]any{
+		"snis":   certificate.SNIs,
+		"labels": certificate.Labels,
+	})
+
+	// Create new certificate
+	newCertificateRequest, err := r.client.CreateSslCertificate(certificate)
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't update ssl certificate resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error creating SSL certificate",
+			"Could not create SSL certificate, unexpected error: "+err.Error(),
 		)
 		return
 	}
 
-	newState, err := model.SslCertificateTypeMapToState(result)
-	newState.PrivateKey = types.String{Value: state.PrivateKey.Value}
+	plan.ID = types.StringValue(newCertificateRequest.ID)
+	plan.Status = types.Int64Value(int64(newCertificateRequest.Status))
+	plan.Certificate = types.StringValue(newCertificateRequest.Certificate)
+	//plan.PrivateKey = types.StringValue(newCertificateRequest.PrivateKey)
+	plan.Type = types.StringValue(newCertificateRequest.Type)
 
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't convert json to state",
-			"Unexpected error: "+err.Error(),
-		)
+	plan.Snis, diags = types.ListValueFrom(ctx, types.StringType, newCertificateRequest.SNIs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	plan.Labels, diags = types.MapValueFrom(ctx, types.StringType, newCertificateRequest.Labels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
-func (r ResourceSslCertificateType) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest, response *tfsdk.ImportResourceStateResponse) {
+// Read resource information.
+func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Get current state
+	var state sslCertificateResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	result, err := r.p.client.GetSslCertificate(request.ID)
-
+	// Get refreshed certificate from the APISIX
+	certificate, err := r.client.GetSslCertificate(state.ID.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't read ssl certificate resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX SSL Certificate",
+			"Could not read APISIX SSL Certificate ID "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
-	newState, err := model.SslCertificateTypeMapToState(result)
+	// Overwrite with refreshed state
+	newState := sslCertificateResourceModel{}
 
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
+	newState.ID = types.StringValue(certificate.ID)
+	newState.Status = types.Int64Value(int64(certificate.Status))
+	newState.Certificate = types.StringValue(certificate.Certificate)
+	newState.PrivateKey = types.StringValue(state.PrivateKey.ValueString())
+	newState.Type = types.StringValue(certificate.Type)
+
+	newState.Snis, diags = types.ListValueFrom(ctx, types.StringType, certificate.SNIs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	diags := response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	newState.Labels, diags = types.MapValueFrom(ctx, types.StringType, certificate.Labels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set refreshed state
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
+// Update resource.
+func (r *sslCertificateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	return
+}
+
+// Delete resource.
+func (r *sslCertificateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	return
+}
+
+// Import resource into state
+func (r *sslCertificateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	return
 }
