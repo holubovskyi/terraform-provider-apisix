@@ -91,7 +91,8 @@ func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequ
 				},
 			},
 			"labels": schema.MapAttribute{
-				Description: "Attributes of the resource specified as key-value pairs.",
+				MarkdownDescription: "Attributes of the resource specified as key-value pairs. An individual pair cannot be deleted using APISIX API" +
+					"In order to delete an individual pair, you can delete all labels and reapply the resource with the desired labels map",
 				Optional:    true,
 				ElementType: types.StringType,
 			},
@@ -156,6 +157,7 @@ func (r *sslCertificateResource) Configure(_ context.Context, req resource.Confi
 
 // Create a new resource.
 func (r *sslCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Debug(ctx, "Start of the resource creation")
 	// Retrieve values from plan
 	var plan sslCertificateResourceModel
 
@@ -173,20 +175,15 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 	certificate.PrivateKey = plan.PrivateKey.ValueString()
 	certificate.Type = plan.Type.ValueString()
 
-	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, false)...)
+	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, true)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, false)...)
+	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, true)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, "SSLCertificate struct contains:", map[string]any{
-		"snis":   certificate.SNIs,
-		"labels": certificate.Labels,
-	})
 
 	// Create new certificate
 	newCertificateRequest, err := r.client.CreateSslCertificate(certificate)
@@ -201,6 +198,7 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 	plan.ID = types.StringValue(newCertificateRequest.ID)
 	plan.Status = types.Int64Value(int64(newCertificateRequest.Status))
 	plan.Certificate = types.StringValue(newCertificateRequest.Certificate)
+	// APISIX API returns the private key in base64 form
 	//plan.PrivateKey = types.StringValue(newCertificateRequest.PrivateKey)
 	plan.Type = types.StringValue(newCertificateRequest.Type)
 
@@ -226,6 +224,7 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 
 // Read resource information.
 func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Debug(ctx, "Start of the resource read")
 	// Get current state
 	var state sslCertificateResourceModel
 	diags := req.State.Get(ctx, &state)
@@ -275,12 +274,101 @@ func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequ
 
 // Update resource.
 func (r *sslCertificateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	return
+	tflog.Debug(ctx, "Start of the resource Update")
+	// Retrieve values from plan
+	var plan sslCertificateResourceModel
+
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Generate API request body from plan
+	var certificate api_client.SSLCertificate
+
+	certificate.Status = uint(plan.Status.ValueInt64())
+	certificate.Certificate = plan.Certificate.ValueString()
+	certificate.PrivateKey = plan.PrivateKey.ValueString()
+	certificate.Type = plan.Type.ValueString()
+
+	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, true)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, true)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Update existing certificate
+	_, err := r.client.UpdateSslCertificate(plan.ID.ValueString(), certificate)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Updating APISIX SSL Certificate",
+			"Could not update SSL certificate, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	// Fetch updated certificate
+	updatedCertificate, err := r.client.GetSslCertificate(plan.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX SSL Certificate",
+			"Could not read APISIX SSL Certificate ID "+plan.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	plan.ID = types.StringValue(updatedCertificate.ID)
+	plan.Status = types.Int64Value(int64(updatedCertificate.Status))
+	plan.Certificate = types.StringValue(updatedCertificate.Certificate)
+	// APISIX API returns the private key in base64 form
+	//plan.PrivateKey = types.StringValue(newCertificateRequest.PrivateKey)
+	plan.Type = types.StringValue(updatedCertificate.Type)
+
+	plan.Snis, diags = types.ListValueFrom(ctx, types.StringType, updatedCertificate.SNIs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	plan.Labels, diags = types.MapValueFrom(ctx, types.StringType, updatedCertificate.Labels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // Delete resource.
 func (r *sslCertificateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	return
+	tflog.Debug(ctx, "Start of the resource deletion")
+	// Get current state
+	var state sslCertificateResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Delete existing certificate
+	err := r.client.DeleteSslCertificate(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting APISIX SSL Certificate",
+			"Could not delete certificate, unexpected error: "+err.Error(),
+		)
+		return
+	}
 }
 
 // Import resource into state
