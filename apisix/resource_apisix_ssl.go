@@ -6,15 +6,10 @@ import (
 
 	"github.com/holubovskyi/apisix-client-go"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"terraform-provider-apisix/apisix/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -56,58 +51,7 @@ func (r *sslCertificateResource) Metadata(_ context.Context, req resource.Metada
 
 // Schema defines the schema for the resource.
 func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Description: "Manages SSL certificates.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Description: "Identifier of the certificate.",
-				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"certificate": schema.StringAttribute{
-				Description: "HTTPS certificate.",
-				Required:    true,
-			},
-			"private_key": schema.StringAttribute{
-				Description: "HTTPS private key.",
-				Required:    true,
-				Sensitive:   true,
-			},
-			"snis": schema.ListAttribute{
-				MarkdownDescription: "A non-empty array of HTTPS SNI. Required if `type` is `server`",
-				Optional:            true,
-				ElementType:         types.StringType,
-			},
-			"type": schema.StringAttribute{
-				MarkdownDescription: "Identifies the type of certificate, default `server`\n" +
-					"`client` Indicates that the certificate is a client certificate, which is used when APISIX accesses the upstream;\n" +
-					"`server` Indicates that the certificate is a server-side certificate, which is used by APISIX when verifying client requests.",
-				Required: true,
-				Validators: []validator.String{
-					// Validate string value must be "server" or "client"
-					stringvalidator.OneOfCaseInsensitive([]string{"server", "client"}...),
-				},
-			},
-			"labels": schema.MapAttribute{
-				MarkdownDescription: "Attributes of the resource specified as key-value pairs. An individual pair cannot be deleted using APISIX API" +
-					"In order to delete an individual pair, you can delete all labels and reapply the resource with the desired labels map",
-				Optional:    true,
-				ElementType: types.StringType,
-			},
-			"status": schema.Int64Attribute{
-				MarkdownDescription: "Enables the current SSL. Set to `1` (enabled) by default. `1` to enable, `0` to disable",
-				Optional:            true,
-				Computed:            true,
-				Default:             int64default.StaticInt64(1),
-				Validators: []validator.Int64{
-					// Validate integer value must be 0 or 1
-					int64validator.OneOf([]int64{0, 1}...),
-				},
-			},
-		},
-	}
+	resp.Schema = model.SSLCertificateSchema
 }
 
 // Validate that snis are specified when certificate type is `server`
@@ -159,7 +103,7 @@ func (r *sslCertificateResource) Configure(_ context.Context, req resource.Confi
 func (r *sslCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Debug(ctx, "Start of the resource creation")
 	// Retrieve values from plan
-	var plan sslCertificateResourceModel
+	var plan model.SSLCertificateResourceModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -168,25 +112,20 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Generate API request body from plan
-	var certificate api_client.SSLCertificate
+	newCertificateRequest, snisDiag, labelsDiag := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
 
-	certificate.Status = uint(plan.Status.ValueInt64())
-	certificate.Certificate = plan.Certificate.ValueString()
-	certificate.PrivateKey = plan.PrivateKey.ValueString()
-	certificate.Type = plan.Type.ValueString()
-
-	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, true)...)
+	resp.Diagnostics.Append(snisDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, true)...)
+	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new certificate
-	newCertificateRequest, err := r.client.CreateSslCertificate(certificate)
+	newCertificateResponse, err := r.client.CreateSslCertificate(newCertificateRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating SSL certificate",
@@ -195,27 +134,22 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	plan.ID = types.StringValue(newCertificateRequest.ID)
-	plan.Status = types.Int64Value(int64(newCertificateRequest.Status))
-	plan.Certificate = types.StringValue(newCertificateRequest.Certificate)
-	// APISIX API returns the private key in base64 form
-	//plan.PrivateKey = types.StringValue(newCertificateRequest.PrivateKey)
-	plan.Type = types.StringValue(newCertificateRequest.Type)
+	// Map response body to schema and populate Computed attribute values
+	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, newCertificateResponse)
+	newState.PrivateKey = types.StringValue(plan.PrivateKey.ValueString())
 
-	plan.Snis, diags = types.ListValueFrom(ctx, types.StringType, newCertificateRequest.SNIs)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(snisDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	plan.Labels, diags = types.MapValueFrom(ctx, types.StringType, newCertificateRequest.Labels)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -226,7 +160,7 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Start of the resource read")
 	// Get current state
-	var state sslCertificateResourceModel
+	var state model.SSLCertificateResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -234,7 +168,7 @@ func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Get refreshed certificate from the APISIX
-	certificate, err := r.client.GetSslCertificate(state.ID.ValueString())
+	certificateStatusResponse, err := r.client.GetSslCertificate(state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading APISIX SSL Certificate",
@@ -244,22 +178,15 @@ func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Overwrite with refreshed state
-	newState := sslCertificateResourceModel{}
-
-	newState.ID = types.StringValue(certificate.ID)
-	newState.Status = types.Int64Value(int64(certificate.Status))
-	newState.Certificate = types.StringValue(certificate.Certificate)
+	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, certificateStatusResponse)
 	newState.PrivateKey = types.StringValue(state.PrivateKey.ValueString())
-	newState.Type = types.StringValue(certificate.Type)
 
-	newState.Snis, diags = types.ListValueFrom(ctx, types.StringType, certificate.SNIs)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(snisDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	newState.Labels, diags = types.MapValueFrom(ctx, types.StringType, certificate.Labels)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -276,7 +203,7 @@ func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequ
 func (r *sslCertificateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	tflog.Debug(ctx, "Start of the resource Update")
 	// Retrieve values from plan
-	var plan sslCertificateResourceModel
+	var plan model.SSLCertificateResourceModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -285,25 +212,20 @@ func (r *sslCertificateResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Generate API request body from plan
-	var certificate api_client.SSLCertificate
+	updateCertificateRequest, snisDiag, labelsDiag := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
 
-	certificate.Status = uint(plan.Status.ValueInt64())
-	certificate.Certificate = plan.Certificate.ValueString()
-	certificate.PrivateKey = plan.PrivateKey.ValueString()
-	certificate.Type = plan.Type.ValueString()
-
-	resp.Diagnostics.Append(plan.Snis.ElementsAs(ctx, &certificate.SNIs, true)...)
+	resp.Diagnostics.Append(snisDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(plan.Labels.ElementsAs(ctx, &certificate.Labels, true)...)
+	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Update existing certificate
-	_, err := r.client.UpdateSslCertificate(plan.ID.ValueString(), certificate)
+	_, err := r.client.UpdateSslCertificate(plan.ID.ValueString(), updateCertificateRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating APISIX SSL Certificate",
@@ -322,27 +244,21 @@ func (r *sslCertificateResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	plan.ID = types.StringValue(updatedCertificate.ID)
-	plan.Status = types.Int64Value(int64(updatedCertificate.Status))
-	plan.Certificate = types.StringValue(updatedCertificate.Certificate)
-	// APISIX API returns the private key in base64 form
-	//plan.PrivateKey = types.StringValue(newCertificateRequest.PrivateKey)
-	plan.Type = types.StringValue(updatedCertificate.Type)
+	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, updatedCertificate)
+	newState.PrivateKey = types.StringValue(plan.PrivateKey.ValueString())
 
-	plan.Snis, diags = types.ListValueFrom(ctx, types.StringType, updatedCertificate.SNIs)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(snisDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	plan.Labels, diags = types.MapValueFrom(ctx, types.StringType, updatedCertificate.Labels)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
