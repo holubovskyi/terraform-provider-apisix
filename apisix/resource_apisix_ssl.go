@@ -73,7 +73,7 @@ func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"private_key": schema.StringAttribute{
 				Description: "HTTPS private key.",
 				Required:    true,
-				Sensitive:   false,
+				Sensitive:   true,
 			},
 			"snis": schema.ListAttribute{
 				MarkdownDescription: "A non-empty array of HTTPS SNI. Required if `type` is `server`",
@@ -373,5 +373,6 @@ func (r *sslCertificateResource) Delete(ctx context.Context, req resource.Delete
 
 // Import resource into state
 func (r *sslCertificateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	return
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
