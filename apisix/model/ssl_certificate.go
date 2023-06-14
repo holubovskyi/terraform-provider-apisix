@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
-// sslCertificateResourceModel maps the resource schema data.
+// SSLCertificateResourceModel maps the resource schema data.
 type SSLCertificateResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	Status      types.Int64  `tfsdk:"status"`

@@ -33,16 +33,16 @@ type sslCertificateResource struct {
 	client *api_client.ApiClient
 }
 
-// sslCertificateResourceModel maps the resource schema data.
-type sslCertificateResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Status      types.Int64  `tfsdk:"status"`
-	Certificate types.String `tfsdk:"certificate"`
-	PrivateKey  types.String `tfsdk:"private_key"`
-	Snis        types.List   `tfsdk:"snis"`
-	Type        types.String `tfsdk:"type"`
-	Labels      types.Map    `tfsdk:"labels"`
-}
+// // sslCertificateResourceModel maps the resource schema data.
+// type sslCertificateResourceModel struct {
+// 	ID          types.String `tfsdk:"id"`
+// 	Status      types.Int64  `tfsdk:"status"`
+// 	Certificate types.String `tfsdk:"certificate"`
+// 	PrivateKey  types.String `tfsdk:"private_key"`
+// 	Snis        types.List   `tfsdk:"snis"`
+// 	Type        types.String `tfsdk:"type"`
+// 	Labels      types.Map    `tfsdk:"labels"`
+// }
 
 // Metadata returns the resource type name.
 func (r *sslCertificateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -56,7 +56,7 @@ func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequ
 
 // Validate that snis are specified when certificate type is `server`
 func (r *sslCertificateResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data sslCertificateResourceModel
+	var data model.SSLCertificateResourceModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -269,7 +269,7 @@ func (r *sslCertificateResource) Update(ctx context.Context, req resource.Update
 func (r *sslCertificateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Debug(ctx, "Start of the resource deletion")
 	// Get current state
-	var state sslCertificateResourceModel
+	var state model.SSLCertificateResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
