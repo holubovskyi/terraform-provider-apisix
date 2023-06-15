@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // UpstreamResourceModel maps the resource schema data.
@@ -113,12 +114,12 @@ var UpstreamSchema = schema.Schema{
 			MarkdownDescription: "Only valid if the type is chash. Supports Nginx variables (vars), custom headers (header), cookie and consumer. " +
 				"Defaults to vars.",
 			Optional: true,
-			Computed: true,
-			Default:  stringdefault.StaticString("vars"),
+			// Computed: true,
+			// Default:  stringdefault.StaticString("vars"),
 		},
 		"key": schema.StringAttribute{
 			MarkdownDescription: "Nginx var",
-			Optional: true,
+			Optional:            true,
 		},
 		"labels": schema.MapAttribute{
 			MarkdownDescription: "Attributes of the Upstream specified as `key-value` pairs.",
@@ -155,7 +156,13 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
 	apiDataModel.KeepalivePool = UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel.KeepalivePool)
 	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
-	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(terraformDataModel.Nodes)
+	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
+
+	tflog.Info(ctx, "Data transformation process", map[string]any{
+		"Desc":  apiDataModel.Desc,
+		"Name":  apiDataModel.Name,
+		"Nodes": apiDataModel.Nodes,
+	})
 
 	return apiDataModel, labelsDiag
 }

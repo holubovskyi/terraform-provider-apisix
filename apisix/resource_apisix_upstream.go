@@ -89,6 +89,12 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	tflog.Info(ctx, "Plan debug", map[string]any{
+		"Desc": plan.Desc,
+		"Name": plan.Name,
+		"Nodes": plan,
+	})
+
 	// Generate API request body from plan
 	newUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
 

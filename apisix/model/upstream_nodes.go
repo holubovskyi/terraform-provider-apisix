@@ -1,10 +1,13 @@
 package model
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	api_client "github.com/holubovskyi/apisix-client-go"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamNodeType struct {
@@ -34,15 +37,17 @@ var UpstreamNodesSchemaAttribute = schema.ListNestedAttribute{
 	},
 }
 
-func UpstreamNodesFromTerraformToAPI(terraformDataModel *[]UpstreamNodeType) (apiDataModel []api_client.UpstreamNodeType) {
+func UpstreamNodesFromTerraformToAPI(ctx context.Context, terraformDataModel *[]UpstreamNodeType) (apiDataModel []api_client.UpstreamNodeType) {
 	if terraformDataModel == nil {
+		tflog.Error(ctx, "Can't transform upstream nodes to api model")
 		return
 	}
 
-	for i, v := range *terraformDataModel {
-		apiDataModel[i].Host = v.Host.ValueString()
-		apiDataModel[i].Port = uint(v.Port.ValueInt64())
-		apiDataModel[i].Weight = uint(v.Weight.ValueInt64())
+	for _, v := range *terraformDataModel {
+		apiDataModel = append(apiDataModel, api_client.UpstreamNodeType{
+			Host:   v.Host.ValueString(),
+			Port:   uint(v.Port.ValueInt64()),
+			Weight: uint(v.Weight.ValueInt64())})
 	}
 	return apiDataModel
 }

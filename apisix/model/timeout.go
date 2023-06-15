@@ -16,7 +16,7 @@ type TimeoutType struct {
 var TimeoutSchemaAttribute = schema.SingleNestedAttribute{
 	MarkdownDescription: "Sets the timeout (in seconds) for connecting to, and sending and receiving messages to and from the Upstream.",
 	Optional:            true,
-	Computed:            true,
+	Computed:            false,
 	Attributes: map[string]schema.Attribute{
 		"connect": schema.Int64Attribute{
 			Required: true,
