@@ -116,6 +116,10 @@ var UpstreamSchema = schema.Schema{
 			Computed: true,
 			Default:  stringdefault.StaticString("vars"),
 		},
+		"key": schema.StringAttribute{
+			MarkdownDescription: "Nginx var",
+			Optional: true,
+		},
 		"labels": schema.MapAttribute{
 			MarkdownDescription: "Attributes of the Upstream specified as `key-value` pairs.",
 			Optional:            true,

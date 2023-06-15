@@ -16,7 +16,7 @@ type UpstreamKeepAlivePoolType struct {
 var UpstreamKeepAlivePoolSchemaAttribute = schema.SingleNestedAttribute{
 	MarkdownDescription: "Sets the `keepalive_pool`.",
 	Optional:            true,
-	// Computed:            true,
+	Computed:            false,
 	Attributes: map[string]schema.Attribute{
 		"size": schema.Int64Attribute{
 			Required: true,

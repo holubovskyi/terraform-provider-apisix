@@ -89,26 +89,26 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// // Generate API request body from plan
-	// newUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
+	// Generate API request body from plan
+	newUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
 
-	// resp.Diagnostics.Append(labelsDiag...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
+	resp.Diagnostics.Append(labelsDiag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	// // Create new upstream
-	// newUpstreamResponse, err := r.client.CreateUpstream(newUpstreamRequest)
-	// if err != nil {
-	// 	resp.Diagnostics.AddError(
-	// 		"Error creating Upstream",
-	// 		"Could not create Upstream, unexpected error: "+err.Error(),
-	// 	)
-	// 	return
-	// }	
-	// tflog.Info(ctx, "Response after upstream creation", map[string]any{
-	// 	"Info": newUpstreamResponse.Type,
-	// })
+	// Create new upstream
+	newUpstreamResponse, err := r.client.CreateUpstream(newUpstreamRequest)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating Upstream",
+			"Could not create Upstream, unexpected error: "+err.Error(),
+		)
+		return
+	}	
+	tflog.Info(ctx, "Response after upstream creation", map[string]any{
+		"Info": newUpstreamResponse.Type,
+	})
 
 }
 
