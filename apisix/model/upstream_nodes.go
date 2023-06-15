@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	api_client "github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamNodeType struct {
@@ -31,4 +32,17 @@ var UpstreamNodesSchemaAttribute = schema.ListNestedAttribute{
 			},
 		},
 	},
+}
+
+func UpstreamNodesFromTerraformToAPI(terraformDataModel *[]UpstreamNodeType) (apiDataModel []api_client.UpstreamNodeType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	for i, v := range *terraformDataModel {
+		apiDataModel[i].Host = v.Host.ValueString()
+		apiDataModel[i].Port = uint(v.Port.ValueInt64())
+		apiDataModel[i].Weight = uint(v.Weight.ValueInt64())
+	}
+	return apiDataModel
 }

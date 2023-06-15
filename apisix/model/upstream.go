@@ -1,7 +1,12 @@
 package model
 
 import (
+	"context"
+
+	"github.com/holubovskyi/apisix-client-go"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -10,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// UpstreamModel maps the resource schema data.
-type UpstreamModel struct {
+// UpstreamResourceModel maps the resource schema data.
+type UpstreamResourceModel struct {
 	ID              types.String               `tfsdk:"id"`
 	Type            types.String               `tfsdk:"type"`
 	ServiceName     types.String               `tfsdk:"service_name"`
@@ -124,4 +129,29 @@ var UpstreamSchema = schema.Schema{
 		"checks": UpstreamChecksSchemaAttribute,
 		"nodes":  UpstreamNodesSchemaAttribute,
 	},
+}
+
+func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamResourceModel) (apiDataModel api_client.Upstream, labelsDiag diag.Diagnostics) {
+	apiDataModel.Type = terraformDataModel.Type.ValueString()
+	apiDataModel.ServiceName = terraformDataModel.ServiceName.ValueString()
+	apiDataModel.DiscoveryType = terraformDataModel.DiscoveryType.ValueString()
+	apiDataModel.Name = terraformDataModel.Name.ValueString()
+	apiDataModel.Desc = terraformDataModel.Desc.ValueString()
+	apiDataModel.PassHost = terraformDataModel.PassHost.ValueString()
+	apiDataModel.Scheme = terraformDataModel.Scheme.ValueString()
+	apiDataModel.Retries = uint(terraformDataModel.Retries.ValueInt64())
+	apiDataModel.RetryTimeout = uint(terraformDataModel.RetryTimeout.ValueInt64())
+	apiDataModel.UpstreamHost = terraformDataModel.UpstreamHost.ValueString()
+	apiDataModel.HashOn = terraformDataModel.HashOn.ValueString()
+	apiDataModel.Key = terraformDataModel.Key.ValueString()
+	apiDataModel.TLSClientCertID = terraformDataModel.TLSClientCertID.ValueString()
+
+	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
+
+	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
+	apiDataModel.KeepalivePool = UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel.KeepalivePool)
+	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
+	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(terraformDataModel.Nodes)
+
+	return apiDataModel, labelsDiag
 }

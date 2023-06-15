@@ -1,6 +1,8 @@
 package model
 
 import (
+	"github.com/holubovskyi/apisix-client-go"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -26,4 +28,16 @@ var TimeoutSchemaAttribute = schema.SingleNestedAttribute{
 			Required: true,
 		},
 	},
+}
+
+func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel api_client.TimeoutType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.Connect = uint(terraformDataModel.Connect.ValueInt64())
+	apiDataModel.Send = uint(terraformDataModel.Send.ValueInt64())
+	apiDataModel.Read = uint(terraformDataModel.Read.ValueInt64())
+
+	return apiDataModel
 }

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -9,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksActiveType struct {
@@ -82,4 +85,23 @@ var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
 		"healthy":   UpstreamChecksActiveHealthySchemaAttribute,
 		"unhealthy": UpstreamChecksActiveUnhealthySchemaAttribute,
 	},
+}
+
+func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveType) (apiDataModel api_client.UpstreamChecksActiveType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.Type = terraformDataModel.Type.ValueString()
+	apiDataModel.Timeout = uint(terraformDataModel.Timeout.ValueInt64())
+	apiDataModel.Concurrency = uint(terraformDataModel.Concurrency.ValueInt64())
+	apiDataModel.HTTPPath = terraformDataModel.HTTPPath.ValueString()
+	apiDataModel.Host = terraformDataModel.Host.ValueString()
+	apiDataModel.Port = uint(terraformDataModel.Port.ValueInt64())
+	apiDataModel.HTTPSVerifyCertificate = terraformDataModel.HTTPSVerifyCertificate.ValueBool()
+
+	apiDataModel.Healthy = UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy)
+
+	return apiDataModel
+
 }

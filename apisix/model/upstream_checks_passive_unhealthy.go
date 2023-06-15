@@ -1,12 +1,15 @@
 package model
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	api_client "github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksPassiveUnhealthyType struct {
@@ -56,4 +59,17 @@ var UpstreamChecksPassiveUnhealthySchemaAttribute = schema.SingleNestedAttribute
 			Default: int64default.StaticInt64(7),
 		},
 	},
+}
+
+func UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveUnhealthyType) (apiDataModel api_client.UpstreamChecksPassiveUnhealthyType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.TCPFailures = uint(terraformDataModel.TCPFailures.ValueInt64())
+	apiDataModel.Timeouts = uint(terraformDataModel.TCPFailures.ValueInt64())
+	apiDataModel.HTTPFailures = uint(terraformDataModel.HTTPFailures.ValueInt64())
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &apiDataModel.HTTPStatuses, false)
+
+	return apiDataModel
 }

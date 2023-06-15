@@ -1,6 +1,10 @@
 package model
 
 import (
+	"context"
+
+	"github.com/holubovskyi/apisix-client-go"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
@@ -17,4 +21,15 @@ var UpstreamChecksSchemaAttribute = schema.SingleNestedAttribute{
 		"active":  UpstreamChecksActiveSchemaAttribute,
 		"passive": UpstreamChecksPassiveSchemaAttribute,
 	},
+}
+
+func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamChecksType) (apiDataModel api_client.UpstreamChecksType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.Active = UpstreamChecksActiveFromTerraformToApi(ctx, terraformDataModel.Active)
+	apiDataModel.Passive = UpstreamChecksPassiveFromTerraformToApi(ctx, terraformDataModel.Passive)
+
+	return apiDataModel
 }

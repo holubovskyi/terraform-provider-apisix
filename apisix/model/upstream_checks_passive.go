@@ -1,7 +1,10 @@
 package model
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	api_client "github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksPassiveType struct {
@@ -16,4 +19,16 @@ var UpstreamChecksPassiveSchemaAttribute = schema.SingleNestedAttribute{
 		"healthy":   UpstreamChecksPassiveHealthySchemaAttribute,
 		"unhealthy": UpstreamChecksPassiveUnhealthySchemaAttribute,
 	},
+}
+
+func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveType) (apiDataModel api_client.UpstreamChecksPassiveType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.Healthy = UpstreamChecksPassiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy)
+	apiDataModel.Unhealthy = UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy)
+
+	return apiDataModel
+
 }

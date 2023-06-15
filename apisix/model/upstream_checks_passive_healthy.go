@@ -1,6 +1,10 @@
 package model
 
 import (
+	"context"
+
+	"github.com/holubovskyi/apisix-client-go"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -36,4 +40,15 @@ var UpstreamChecksPassiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 			Default: int64default.StaticInt64(5),
 		},
 	},
+}
+
+func UpstreamChecksPassiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveHealthyType) (apiDataModel api_client.UpstreamChecksPassiveHealthyType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	apiDataModel.Successes = uint(terraformDataModel.Successes.ValueInt64())
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &apiDataModel.HTTPStatuses, false)
+
+	return apiDataModel
 }
