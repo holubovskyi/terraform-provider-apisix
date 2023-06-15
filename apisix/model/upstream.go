@@ -21,17 +21,16 @@ type UpstreamModel struct {
 	Desc            types.String               `tfsdk:"desc"`
 	PassHost        types.String               `tfsdk:"pass_host"`
 	Scheme          types.String               `tfsdk:"scheme"`
-	Retries         types.Number               `tfsdk:"retries"`
-	RetryTimeout    types.Number               `tfsdk:"retry_timeout"`
+	Retries         types.Int64                `tfsdk:"retries"`
+	RetryTimeout    types.Int64                `tfsdk:"retry_timeout"`
 	Labels          types.Map                  `tfsdk:"labels"`
 	UpstreamHost    types.String               `tfsdk:"upstream_host"`
 	HashOn          types.String               `tfsdk:"hash_on"`
 	Key             types.String               `tfsdk:"key"`
 	KeepalivePool   *UpstreamKeepAlivePoolType `tfsdk:"keepalive_pool"`
 	TLSClientCertID types.String               `tfsdk:"tls_client_cert_id"`
-	// TLS           *UpstreamTLSType           `tfsdk:"tls"`
-	Checks *UpstreamChecksType `tfsdk:"checks"`
-	Nodes  *[]UpstreamNodeType `tfsdk:"nodes"`
+	Checks          *UpstreamChecksType        `tfsdk:"checks"`
+	Nodes           *[]UpstreamNodeType        `tfsdk:"nodes"`
 }
 
 var UpstreamSchema = schema.Schema{

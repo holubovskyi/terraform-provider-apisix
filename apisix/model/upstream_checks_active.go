@@ -13,11 +13,11 @@ import (
 
 type UpstreamChecksActiveType struct {
 	Type                   types.String                       `tfsdk:"type"`
-	Timeout                types.Number                       `tfsdk:"timeout"`
-	Concurrency            types.Number                       `tfsdk:"concurrency"`
+	Timeout                types.Int64                        `tfsdk:"timeout"`
+	Concurrency            types.Int64                        `tfsdk:"concurrency"`
 	HTTPPath               types.String                       `tfsdk:"http_path"`
 	Host                   types.String                       `tfsdk:"host"`
-	Port                   types.Number                       `tfsdk:"port"`
+	Port                   types.Int64                        `tfsdk:"port"`
 	HTTPSVerifyCertificate types.Bool                         `tfsdk:"https_verify_certificate"`
 	ReqHeaders             types.List                         `tfsdk:"req_headers"`
 	Healthy                *UpstreamChecksActiveHealthyType   `tfsdk:"healthy"`

@@ -8,8 +8,8 @@ import (
 
 type UpstreamNodeType struct {
 	Host   types.String `tfsdk:"host"`
-	Port   types.Number `tfsdk:"port"`
-	Weight types.Number `tfsdk:"weight"`
+	Port   types.Int64  `tfsdk:"port"`
+	Weight types.Int64  `tfsdk:"weight"`
 }
 
 var UpstreamNodesSchemaAttribute = schema.ListNestedAttribute{

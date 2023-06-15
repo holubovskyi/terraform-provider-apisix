@@ -6,9 +6,9 @@ import (
 )
 
 type UpstreamKeepAlivePoolType struct {
-	Size        types.Number `tfsdk:"size"`
-	IdleTimeout types.Number `tfsdk:"idle_timeout"`
-	Requests    types.Number `tfsdk:"requests"`
+	Size        types.Int64 `tfsdk:"size"`
+	IdleTimeout types.Int64 `tfsdk:"idle_timeout"`
+	Requests    types.Int64 `tfsdk:"requests"`
 }
 
 var UpstreamKeepAlivePoolSchemaAttribute = schema.SingleNestedAttribute{

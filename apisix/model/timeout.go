@@ -6,9 +6,9 @@ import (
 )
 
 type TimeoutType struct {
-	Connect types.Number `tfsdk:"connect"`
-	Send    types.Number `tfsdk:"send"`
-	Read    types.Number `tfsdk:"read"`
+	Connect types.Int64 `tfsdk:"connect"`
+	Send    types.Int64 `tfsdk:"send"`
+	Read    types.Int64 `tfsdk:"read"`
 }
 
 var TimeoutSchemaAttribute = schema.SingleNestedAttribute{

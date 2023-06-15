@@ -10,9 +10,9 @@ import (
 )
 
 type UpstreamChecksActiveHealthyType struct {
-	Interval     types.Number `tfsdk:"interval"`
-	HTTPStatuses types.List   `tfsdk:"http_statuses"`
-	Successes    types.Number `tfsdk:"successes"`
+	Interval     types.Int64 `tfsdk:"interval"`
+	HTTPStatuses types.List  `tfsdk:"http_statuses"`
+	Successes    types.Int64 `tfsdk:"successes"`
 }
 
 var UpstreamChecksActiveHealthySchemaAttribute = schema.SingleNestedAttribute{

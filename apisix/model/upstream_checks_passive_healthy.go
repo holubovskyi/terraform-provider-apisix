@@ -10,8 +10,8 @@ import (
 )
 
 type UpstreamChecksPassiveHealthyType struct {
-	HTTPStatuses types.List   `tfsdk:"http_statuses"`
-	Successes    types.Number `tfsdk:"successes"`
+	HTTPStatuses types.List  `tfsdk:"http_statuses"`
+	Successes    types.Int64 `tfsdk:"successes"`
 }
 
 var UpstreamChecksPassiveHealthySchemaAttribute = schema.SingleNestedAttribute{

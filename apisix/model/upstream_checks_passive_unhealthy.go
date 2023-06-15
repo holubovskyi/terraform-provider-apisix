@@ -10,10 +10,10 @@ import (
 )
 
 type UpstreamChecksPassiveUnhealthyType struct {
-	HTTPStatuses types.List   `tfsdk:"http_statuses"`
-	TCPFailures  types.Number `tfsdk:"tcp_failures"`
-	Timeouts     types.Number `tfsdk:"timeouts"`
-	HTTPFailures types.Number `tfsdk:"http_failures"`
+	HTTPStatuses types.List  `tfsdk:"http_statuses"`
+	TCPFailures  types.Int64 `tfsdk:"tcp_failures"`
+	Timeouts     types.Int64 `tfsdk:"timeouts"`
+	HTTPFailures types.Int64 `tfsdk:"http_failures"`
 }
 
 var UpstreamChecksPassiveUnhealthySchemaAttribute = schema.SingleNestedAttribute{
