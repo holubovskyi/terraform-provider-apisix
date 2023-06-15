@@ -33,17 +33,6 @@ type sslCertificateResource struct {
 	client *api_client.ApiClient
 }
 
-// // sslCertificateResourceModel maps the resource schema data.
-// type sslCertificateResourceModel struct {
-// 	ID          types.String `tfsdk:"id"`
-// 	Status      types.Int64  `tfsdk:"status"`
-// 	Certificate types.String `tfsdk:"certificate"`
-// 	PrivateKey  types.String `tfsdk:"private_key"`
-// 	Snis        types.List   `tfsdk:"snis"`
-// 	Type        types.String `tfsdk:"type"`
-// 	Labels      types.Map    `tfsdk:"labels"`
-// }
-
 // Metadata returns the resource type name.
 func (r *sslCertificateResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_ssl_certificate"
@@ -101,7 +90,7 @@ func (r *sslCertificateResource) Configure(_ context.Context, req resource.Confi
 
 // Create a new resource.
 func (r *sslCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Debug(ctx, "Start of the resource creation")
+	tflog.Debug(ctx, "Start of the SSL certificate resource creation")
 	// Retrieve values from plan
 	var plan model.SSLCertificateResourceModel
 
