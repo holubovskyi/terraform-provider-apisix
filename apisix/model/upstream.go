@@ -137,19 +137,19 @@ var UpstreamSchema = schema.Schema{
 }
 
 func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamResourceModel) (apiDataModel api_client.Upstream, labelsDiag diag.Diagnostics) {
-	apiDataModel.Type = terraformDataModel.Type.ValueString()
-	apiDataModel.ServiceName = terraformDataModel.ServiceName.ValueString()
-	apiDataModel.DiscoveryType = terraformDataModel.DiscoveryType.ValueString()
-	apiDataModel.Name = terraformDataModel.Name.ValueString()
-	apiDataModel.Desc = terraformDataModel.Desc.ValueString()
-	apiDataModel.PassHost = terraformDataModel.PassHost.ValueString()
-	apiDataModel.Scheme = terraformDataModel.Scheme.ValueString()
-	apiDataModel.Retries = uint(terraformDataModel.Retries.ValueInt64())
-	apiDataModel.RetryTimeout = uint(terraformDataModel.RetryTimeout.ValueInt64())
-	apiDataModel.UpstreamHost = terraformDataModel.UpstreamHost.ValueString()
-	apiDataModel.HashOn = terraformDataModel.HashOn.ValueString()
-	apiDataModel.Key = terraformDataModel.Key.ValueString()
-	apiDataModel.TLSClientCertID = terraformDataModel.TLSClientCertID.ValueString()
+	apiDataModel.Type = terraformDataModel.Type.ValueStringPointer()
+	apiDataModel.ServiceName = terraformDataModel.ServiceName.ValueStringPointer()
+	apiDataModel.DiscoveryType = terraformDataModel.DiscoveryType.ValueStringPointer()
+	apiDataModel.Name = terraformDataModel.Name.ValueStringPointer()
+	apiDataModel.Desc = terraformDataModel.Desc.ValueStringPointer()
+	apiDataModel.PassHost = terraformDataModel.PassHost.ValueStringPointer()
+	apiDataModel.Scheme = terraformDataModel.Scheme.ValueStringPointer()
+	apiDataModel.Retries = terraformDataModel.Retries.ValueInt64Pointer()
+	apiDataModel.RetryTimeout = terraformDataModel.RetryTimeout.ValueInt64Pointer()
+	apiDataModel.UpstreamHost = terraformDataModel.UpstreamHost.ValueStringPointer()
+	apiDataModel.HashOn = terraformDataModel.HashOn.ValueStringPointer()
+	apiDataModel.Key = terraformDataModel.Key.ValueStringPointer()
+	apiDataModel.TLSClientCertID = terraformDataModel.TLSClientCertID.ValueStringPointer()
 
 	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
 
@@ -158,7 +158,7 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
 	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
 
-	tflog.Info(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
 		"Type":            apiDataModel.Type,
 		"ServiceName":     apiDataModel.ServiceName,
 		"DiscoveryType":   apiDataModel.DiscoveryType,
@@ -180,4 +180,29 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	})
 
 	return apiDataModel, labelsDiag
+}
+
+func UpstreamFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Upstream) (terraformDataModel UpstreamResourceModel, labelsDiag diag.Diagnostics) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Type = types.StringPointerValue(apiDataModel.Type)
+	terraformDataModel.ServiceName = types.StringPointerValue(apiDataModel.ServiceName)
+	terraformDataModel.DiscoveryType = types.StringPointerValue(apiDataModel.DiscoveryType)
+	terraformDataModel.Name = types.StringPointerValue(apiDataModel.Name)
+	terraformDataModel.Desc = types.StringPointerValue(apiDataModel.Desc)
+	terraformDataModel.PassHost = types.StringPointerValue(apiDataModel.PassHost)
+	terraformDataModel.Scheme = types.StringPointerValue(apiDataModel.Scheme)
+	terraformDataModel.Retries = types.Int64PointerValue(apiDataModel.Retries)
+	terraformDataModel.RetryTimeout = types.Int64PointerValue(apiDataModel.RetryTimeout)
+	terraformDataModel.UpstreamHost = types.StringPointerValue(apiDataModel.UpstreamHost)
+	terraformDataModel.HashOn = types.StringPointerValue(apiDataModel.HashOn)
+	terraformDataModel.Key = types.StringPointerValue(apiDataModel.Key)
+	terraformDataModel.TLSClientCertID = types.StringPointerValue(apiDataModel.TLSClientCertID)
+
+	terraformDataModel.Labels, labelsDiag = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
+
+	terraformDataModel.Timeout = TimeoutFromAPIToTerraform(apiDataModel.Timeout)
+	terraformDataModel.KeepalivePool = UpstreamKeepAlivePoolFromAPIToTerraform(apiDataModel.KeepalivePool)
+	terraformDataModel.Checks = UpstreamChecksFromApiToTerraform(ctx, apiDataModel.Checks)
+
+	return terraformDataModel, labelsDiag
 }

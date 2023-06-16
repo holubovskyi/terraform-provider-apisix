@@ -43,3 +43,17 @@ func UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel *UpstreamKeepAli
 
 	return &result
 }
+
+func UpstreamKeepAlivePoolFromAPIToTerraform(apiDataModel *api_client.UpstreamKeepAlivePoolType) (terraformDataModel *UpstreamKeepAlivePoolType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	result := UpstreamKeepAlivePoolType{
+		Size:        types.Int64Value(int64(apiDataModel.Size)),
+		IdleTimeout: types.Int64Value(int64(apiDataModel.IdleTimeout)),
+		Requests:    types.Int64Value(int64(apiDataModel.Requests)),
+	}
+
+	return &result
+}

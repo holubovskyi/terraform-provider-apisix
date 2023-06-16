@@ -99,3 +99,19 @@ func UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx context.Context, terraf
 
 	return &result
 }
+
+func UpstreamChecksActiveUnhealthyFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksActiveUnhealthyType) (terraformDataModel *UpstreamChecksActiveUnhealthyType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksActiveUnhealthyType{
+		Interval:     types.Int64Value(int64(apiDataModel.Interval)),
+		TCPFailures:  types.Int64Value(int64(apiDataModel.TCPFailures)),
+		Timeouts:     types.Int64Value(int64(apiDataModel.Timeouts)),
+		HTTPFailures: types.Int64Value(int64(apiDataModel.HTTPFailures)),
+	}
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+
+	return &result
+}

@@ -106,10 +106,21 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
-	tflog.Info(ctx, "Response after upstream creation", map[string]any{
-		"Info": newUpstreamResponse.Type,
-	})
 
+	// Map response body to schema and populate Computed attribute values
+	newState, labelsDiag := model.UpstreamFromApiToTerraform(ctx, newUpstreamResponse)
+
+	resp.Diagnostics.Append(labelsDiag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // Read resource information.

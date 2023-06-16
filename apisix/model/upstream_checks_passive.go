@@ -33,3 +33,16 @@ func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataM
 
 	return &result
 }
+
+func UpstreamChecksPassiveFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksPassiveType) (terraformDataModel *UpstreamChecksPassiveType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksPassiveType{
+		Healthy:   UpstreamChecksPassiveHealthyFromApiToTerraform(ctx, apiDataModel.Healthy),
+		Unhealthy: UpstreamChecksPassiveUnhealthyFromApiToTerraform(ctx, apiDataModel.Unhealthy),
+	}
+
+	return &result
+}

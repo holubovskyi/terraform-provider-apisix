@@ -19,6 +19,12 @@ resource "apisix_upstream" "example" {
   labels = {
     "version" : "v1"
   }
+  retry_timeout = 30
+  timeout = {
+    connect = 2
+    send = 2
+    read = 2
+  }
   nodes = [
     {
       host   = "127.0.0.1"

@@ -35,3 +35,16 @@ func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *U
 
 	return &result
 }
+
+func UpstreamChecksFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksType) (terraformDataModel *UpstreamChecksType) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksType{
+		Active:  UpstreamChecksActiveFromApiToTerraform(ctx, apiDataModel.Active),
+		Passive: UpstreamChecksPassiveFromApiToTerraform(ctx, apiDataModel.Passive),
+	}
+
+	return &result
+}

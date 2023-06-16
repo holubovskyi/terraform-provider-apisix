@@ -83,3 +83,18 @@ func UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx context.Context, terra
 
 	return &result
 }
+
+func UpstreamChecksPassiveUnhealthyFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksPassiveUnhealthyType) (terraformDataModel *UpstreamChecksPassiveUnhealthyType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksPassiveUnhealthyType{
+		TCPFailures:  types.Int64Value(int64(apiDataModel.TCPFailures)),
+		Timeouts:     types.Int64Value(int64(apiDataModel.Timeouts)),
+		HTTPFailures: types.Int64Value(int64(apiDataModel.HTTPFailures)),
+	}
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+
+	return &result
+}

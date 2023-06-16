@@ -43,3 +43,17 @@ func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel *a
 
 	return &result
 }
+
+func TimeoutFromAPIToTerraform(apiDataModel *api_client.TimeoutType) (terraformDataModel *TimeoutType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := TimeoutType{
+		Connect: types.Int64Value(int64(apiDataModel.Connect)),
+		Send:    types.Int64Value(int64(apiDataModel.Send)),
+		Read:    types.Int64Value(int64(apiDataModel.Read)),
+	}
+
+	return &result
+}

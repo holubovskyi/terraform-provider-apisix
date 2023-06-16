@@ -78,3 +78,16 @@ func UpstreamChecksPassiveHealthyFromTerraformToApi(ctx context.Context, terrafo
 
 	return &result
 }
+
+func UpstreamChecksPassiveHealthyFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksPassiveHealthyType) (terraformDataModel *UpstreamChecksPassiveHealthyType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksPassiveHealthyType{
+		Successes: types.Int64Value(int64(apiDataModel.Successes)),
+	}
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+
+	return &result
+}
