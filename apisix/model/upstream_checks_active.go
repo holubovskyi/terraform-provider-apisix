@@ -87,21 +87,24 @@ var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveType) (apiDataModel api_client.UpstreamChecksActiveType) {
+func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveType) (apiDataModel *api_client.UpstreamChecksActiveType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Type = terraformDataModel.Type.ValueString()
-	apiDataModel.Timeout = uint(terraformDataModel.Timeout.ValueInt64())
-	apiDataModel.Concurrency = uint(terraformDataModel.Concurrency.ValueInt64())
-	apiDataModel.HTTPPath = terraformDataModel.HTTPPath.ValueString()
-	apiDataModel.Host = terraformDataModel.Host.ValueString()
-	apiDataModel.Port = uint(terraformDataModel.Port.ValueInt64())
-	apiDataModel.HTTPSVerifyCertificate = terraformDataModel.HTTPSVerifyCertificate.ValueBool()
+	result := api_client.UpstreamChecksActiveType{
+		Type:                   terraformDataModel.Type.ValueString(),
+		Timeout:                uint(terraformDataModel.Timeout.ValueInt64()),
+		Concurrency:            uint(terraformDataModel.Concurrency.ValueInt64()),
+		HTTPPath:               terraformDataModel.HTTPPath.ValueString(),
+		Host:                   terraformDataModel.Host.ValueString(),
+		Port:                   uint(terraformDataModel.Port.ValueInt64()),
+		HTTPSVerifyCertificate: terraformDataModel.HTTPSVerifyCertificate.ValueBool(),
+		Healthy:                UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
+		Unhealthy:              UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
+	}
 
-	apiDataModel.Healthy = UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy)
+	_ = terraformDataModel.ReqHeaders.ElementsAs(ctx, &result.ReqHeaders, false)
 
-	return apiDataModel
-
+	return &result
 }

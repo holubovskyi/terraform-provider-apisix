@@ -5,8 +5,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/holubovskyi/apisix-client-go"
@@ -38,6 +40,7 @@ var UpstreamChecksActiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 			Validators: []validator.List{
 				listvalidator.ValueInt64sAre(int64validator.Between(200, 599)),
 			},
+			Default: listdefault.StaticValue(types.ListValueMust(types.Int64Type, []attr.Value{types.Int64Value(200), types.Int64Value(302)})),
 		},
 		"successes": schema.Int64Attribute{
 			MarkdownDescription: "Active check (healthy node) determine the number of times a node is healthy.",
@@ -51,14 +54,17 @@ var UpstreamChecksActiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksActiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveHealthyType) (apiDataModel api_client.UpstreamChecksActiveHealthyType) {
+func UpstreamChecksActiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveHealthyType) (apiDataModel *api_client.UpstreamChecksActiveHealthyType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Interval = uint(terraformDataModel.Interval.ValueInt64())
-	apiDataModel.Successes = uint(terraformDataModel.Successes.ValueInt64())
-	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &apiDataModel.HTTPStatuses, false)
+	result := api_client.UpstreamChecksActiveHealthyType{
+		Interval:  uint(terraformDataModel.Interval.ValueInt64()),
+		Successes: uint(terraformDataModel.Successes.ValueInt64()),
+	}
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
 
-	return apiDataModel
+	return &result
+
 }

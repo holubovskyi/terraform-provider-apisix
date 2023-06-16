@@ -114,8 +114,8 @@ var UpstreamSchema = schema.Schema{
 			MarkdownDescription: "Only valid if the type is chash. Supports Nginx variables (vars), custom headers (header), cookie and consumer. " +
 				"Defaults to vars.",
 			Optional: true,
-			// Computed: true,
-			// Default:  stringdefault.StaticString("vars"),
+			Computed: true,
+			Default:  stringdefault.StaticString("vars"),
 		},
 		"key": schema.StringAttribute{
 			MarkdownDescription: "Nginx var",
@@ -158,10 +158,25 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
 	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
 
-	tflog.Info(ctx, "Data transformation process", map[string]any{
-		"Desc":  apiDataModel.Desc,
-		"Name":  apiDataModel.Name,
-		"Nodes": apiDataModel.Nodes,
+	tflog.Info(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+		"Type":            apiDataModel.Type,
+		"ServiceName":     apiDataModel.ServiceName,
+		"DiscoveryType":   apiDataModel.DiscoveryType,
+		"Name":            apiDataModel.Name,
+		"Desc":            apiDataModel.Desc,
+		"PassHost":        apiDataModel.PassHost,
+		"Scheme":          apiDataModel.Scheme,
+		"Retries":         apiDataModel.Retries,
+		"RetryTimeout":    apiDataModel.RetryTimeout,
+		"UpstreamHost":    apiDataModel.UpstreamHost,
+		"HashOn":          apiDataModel.HashOn,
+		"Key":             apiDataModel.Key,
+		"TLSClientCertID": apiDataModel.TLSClientCertID,
+		"Labels":          apiDataModel.Labels,
+		"Timeout":         apiDataModel.Timeout,
+		"KeepalivePool":   apiDataModel.KeepalivePool,
+		"Checks":          apiDataModel.Checks,
+		"Nodes":           apiDataModel.Nodes,
 	})
 
 	return apiDataModel, labelsDiag

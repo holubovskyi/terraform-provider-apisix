@@ -30,14 +30,16 @@ var UpstreamKeepAlivePoolSchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel *UpstreamKeepAlivePoolType) (apiDataModel api_client.UpstreamKeepAlivePoolType) {
+func UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel *UpstreamKeepAlivePoolType) (apiDataModel *api_client.UpstreamKeepAlivePoolType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Requests = uint(terraformDataModel.Size.ValueInt64())
-	apiDataModel.IdleTimeout = uint(terraformDataModel.IdleTimeout.ValueInt64())
-	apiDataModel.Requests = uint(terraformDataModel.Requests.ValueInt64())
+	result := api_client.UpstreamKeepAlivePoolType{
+		Size:        uint(terraformDataModel.Size.ValueInt64()),
+		IdleTimeout: uint(terraformDataModel.IdleTimeout.ValueInt64()),
+		Requests:    uint(terraformDataModel.Requests.ValueInt64()),
+	}
 
-	return apiDataModel
+	return &result
 }

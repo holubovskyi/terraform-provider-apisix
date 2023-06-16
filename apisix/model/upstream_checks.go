@@ -23,13 +23,15 @@ var UpstreamChecksSchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamChecksType) (apiDataModel api_client.UpstreamChecksType) {
+func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamChecksType) (apiDataModel *api_client.UpstreamChecksType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Active = UpstreamChecksActiveFromTerraformToApi(ctx, terraformDataModel.Active)
-	apiDataModel.Passive = UpstreamChecksPassiveFromTerraformToApi(ctx, terraformDataModel.Passive)
+	result := api_client.UpstreamChecksType{
+		Active:  UpstreamChecksActiveFromTerraformToApi(ctx, terraformDataModel.Active),
+		Passive: UpstreamChecksPassiveFromTerraformToApi(ctx, terraformDataModel.Passive),
+	}
 
-	return apiDataModel
+	return &result
 }

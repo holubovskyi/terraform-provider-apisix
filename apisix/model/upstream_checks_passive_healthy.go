@@ -7,8 +7,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -26,9 +28,31 @@ var UpstreamChecksPassiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 			MarkdownDescription: "Passive check (healthy node) HTTP or HTTPS type check, the HTTP status code of the healthy node.",
 			ElementType:         types.Int64Type,
 			Optional:            true,
+			Computed:            true,
 			Validators: []validator.List{
 				listvalidator.ValueInt64sAre(int64validator.Between(200, 599)),
 			},
+			Default: listdefault.StaticValue(types.ListValueMust(types.Int64Type, []attr.Value{
+				types.Int64Value(200),
+				types.Int64Value(201),
+				types.Int64Value(202),
+				types.Int64Value(203),
+				types.Int64Value(204),
+				types.Int64Value(205),
+				types.Int64Value(206),
+				types.Int64Value(207),
+				types.Int64Value(208),
+				types.Int64Value(226),
+				types.Int64Value(300),
+				types.Int64Value(301),
+				types.Int64Value(302),
+				types.Int64Value(303),
+				types.Int64Value(304),
+				types.Int64Value(305),
+				types.Int64Value(306),
+				types.Int64Value(307),
+				types.Int64Value(308),
+			})),
 		},
 		"successes": schema.Int64Attribute{
 			MarkdownDescription: "Passive checks (healthy node) determine the number of times a node is healthy.",
@@ -42,13 +66,15 @@ var UpstreamChecksPassiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksPassiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveHealthyType) (apiDataModel api_client.UpstreamChecksPassiveHealthyType) {
+func UpstreamChecksPassiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveHealthyType) (apiDataModel *api_client.UpstreamChecksPassiveHealthyType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Successes = uint(terraformDataModel.Successes.ValueInt64())
-	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &apiDataModel.HTTPStatuses, false)
+	result := api_client.UpstreamChecksPassiveHealthyType{
+		Successes: uint(terraformDataModel.Successes.ValueInt64()),
+	}
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
 
-	return apiDataModel
+	return &result
 }

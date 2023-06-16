@@ -21,14 +21,15 @@ var UpstreamChecksPassiveSchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveType) (apiDataModel api_client.UpstreamChecksPassiveType) {
+func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveType) (apiDataModel *api_client.UpstreamChecksPassiveType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Healthy = UpstreamChecksPassiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy)
-	apiDataModel.Unhealthy = UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy)
+	result := api_client.UpstreamChecksPassiveType{
+		Healthy:   UpstreamChecksPassiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
+		Unhealthy: UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
+	}
 
-	return apiDataModel
-
+	return &result
 }

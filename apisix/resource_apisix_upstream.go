@@ -9,7 +9,7 @@ import (
 	"terraform-provider-apisix/apisix/model"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
-//	"github.com/hashicorp/terraform-plugin-framework/diag"
+	//	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -89,12 +89,6 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	tflog.Info(ctx, "Plan debug", map[string]any{
-		"Desc": plan.Desc,
-		"Name": plan.Name,
-		"Nodes": plan,
-	})
-
 	// Generate API request body from plan
 	newUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
 
@@ -111,7 +105,7 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 			"Could not create Upstream, unexpected error: "+err.Error(),
 		)
 		return
-	}	
+	}
 	tflog.Info(ctx, "Response after upstream creation", map[string]any{
 		"Info": newUpstreamResponse.Type,
 	})

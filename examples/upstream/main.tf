@@ -16,16 +16,45 @@ resource "apisix_upstream" "example" {
   name = "Example"
   desc = "Example of the upstream resource usage"
   type = "roundrobin"
+  labels = {
+    "version" : "v1"
+  }
   nodes = [
     {
       host   = "127.0.0.1"
-      port   = 8080
+      port   = 1980
       weight = 1
     },
     {
-      host = "10.10.10.10"
-      port = 80
-      weight = 2
-    }
+      host   = "127.0.0.1"
+      port   = 1970
+      weight = 1
+    },
   ]
+  checks = {
+    active = {
+      timeout   = 5
+      http_path = "/status"
+      host      = "foo.com"
+      healthy = {
+        interval  = 2,
+        successes = 1
+      }
+      unhealthy = {
+        interval      = 1
+        http_failures = 2
+      }
+      req_headers = ["User-Agent: curl/7.29.0"]
+    }
+    passive = {
+      healthy = {
+        http_statuses = [200, 201]
+      }
+      unhealthy = {
+        http_statuses = [500]
+        http_failures = 3
+        tcp_failures  = 3
+      }
+    }
+  }
 }

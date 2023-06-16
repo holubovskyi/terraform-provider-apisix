@@ -5,8 +5,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	api_client "github.com/holubovskyi/apisix-client-go"
@@ -40,6 +42,16 @@ var UpstreamChecksActiveUnhealthySchemaAttribute = schema.SingleNestedAttribute{
 			Validators: []validator.List{
 				listvalidator.ValueInt64sAre(int64validator.Between(200, 599)),
 			},
+			Default: listdefault.StaticValue(types.ListValueMust(types.Int64Type, []attr.Value{
+				types.Int64Value(429),
+				types.Int64Value(404),
+				types.Int64Value(500),
+				types.Int64Value(501),
+				types.Int64Value(502),
+				types.Int64Value(503),
+				types.Int64Value(504),
+				types.Int64Value(505),
+			})),
 		},
 		"http_failures": schema.Int64Attribute{
 			MarkdownDescription: "Active check (unhealthy node) HTTP or HTTPS type check, determine the number of times that the node is not healthy.",
@@ -71,16 +83,19 @@ var UpstreamChecksActiveUnhealthySchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveUnhealthyType) (apiDataModel api_client.UpstreamChecksActiveUnhealthyType) {
+func UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveUnhealthyType) (apiDataModel *api_client.UpstreamChecksActiveUnhealthyType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Interval = uint(terraformDataModel.Interval.ValueInt64())
-	apiDataModel.TCPFailures = uint(terraformDataModel.TCPFailures.ValueInt64())
-	apiDataModel.Timeouts = uint(terraformDataModel.TCPFailures.ValueInt64())
-	apiDataModel.HTTPFailures = uint(terraformDataModel.HTTPFailures.ValueInt64())
-	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &apiDataModel.HTTPStatuses, false)
+	result := api_client.UpstreamChecksActiveUnhealthyType{
+		Interval:     uint(terraformDataModel.Interval.ValueInt64()),
+		TCPFailures:  uint(terraformDataModel.TCPFailures.ValueInt64()),
+		Timeouts:     uint(terraformDataModel.TCPFailures.ValueInt64()),
+		HTTPFailures: uint(terraformDataModel.HTTPFailures.ValueInt64()),
+	}
 
-	return apiDataModel
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
+
+	return &result
 }

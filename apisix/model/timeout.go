@@ -30,14 +30,16 @@ var TimeoutSchemaAttribute = schema.SingleNestedAttribute{
 	},
 }
 
-func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel api_client.TimeoutType) {
+func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel *api_client.TimeoutType) {
 	if terraformDataModel == nil {
 		return
 	}
 
-	apiDataModel.Connect = uint(terraformDataModel.Connect.ValueInt64())
-	apiDataModel.Send = uint(terraformDataModel.Send.ValueInt64())
-	apiDataModel.Read = uint(terraformDataModel.Read.ValueInt64())
+	result := api_client.TimeoutType{
+		Connect: uint(terraformDataModel.Connect.ValueInt64()),
+		Send:    uint(terraformDataModel.Send.ValueInt64()),
+		Read:    uint(terraformDataModel.Read.ValueInt64()),
+	}
 
-	return apiDataModel
+	return &result
 }
