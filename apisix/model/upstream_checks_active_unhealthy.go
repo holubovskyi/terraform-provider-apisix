@@ -89,10 +89,10 @@ func UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx context.Context, terraf
 	}
 
 	result := api_client.UpstreamChecksActiveUnhealthyType{
-		Interval:     uint(terraformDataModel.Interval.ValueInt64()),
-		TCPFailures:  uint(terraformDataModel.TCPFailures.ValueInt64()),
-		Timeouts:     uint(terraformDataModel.Timeouts.ValueInt64()),
-		HTTPFailures: uint(terraformDataModel.HTTPFailures.ValueInt64()),
+		Interval:     terraformDataModel.Interval.ValueInt64(),
+		TCPFailures:  terraformDataModel.TCPFailures.ValueInt64(),
+		Timeouts:     terraformDataModel.Timeouts.ValueInt64(),
+		HTTPFailures: terraformDataModel.HTTPFailures.ValueInt64(),
 	}
 
 	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)

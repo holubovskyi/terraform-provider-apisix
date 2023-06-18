@@ -21,9 +21,9 @@ resource "apisix_upstream" "example" {
   }
   retry_timeout = 30
   timeout = {
-    connect = 2
-    send = 2
-    read = 2
+    connect = 10
+    send    = 5
+    read    = 5
   }
   nodes = [
     {
@@ -39,9 +39,10 @@ resource "apisix_upstream" "example" {
   ]
   checks = {
     active = {
+      host = "example.com"
+      port = 8888
       timeout   = 5
       http_path = "/status"
-      host      = "foo.com"
       healthy = {
         interval  = 2,
         successes = 1
@@ -52,15 +53,15 @@ resource "apisix_upstream" "example" {
       }
       req_headers = ["User-Agent: curl/7.29.0"]
     }
-    passive = {
-      healthy = {
-        http_statuses = [200, 201]
-      }
-      unhealthy = {
-        http_statuses = [500]
-        http_failures = 3
-        tcp_failures  = 3
-      }
-    }
+    # passive = {
+    #   healthy = {
+    #     http_statuses = [200, 201]
+    #   }
+    #   unhealthy = {
+    #     http_statuses = [500]
+    #     http_failures = 3
+    #     tcp_failures  = 3
+    #   }
+    # }
   }
 }

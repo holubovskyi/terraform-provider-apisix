@@ -72,7 +72,7 @@ func UpstreamChecksPassiveHealthyFromTerraformToApi(ctx context.Context, terrafo
 	}
 
 	result := api_client.UpstreamChecksPassiveHealthyType{
-		Successes: uint(terraformDataModel.Successes.ValueInt64()),
+		Successes: terraformDataModel.Successes.ValueInt64(),
 	}
 	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
 

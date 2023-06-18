@@ -74,9 +74,9 @@ func UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx context.Context, terra
 	}
 
 	result := api_client.UpstreamChecksPassiveUnhealthyType{
-		TCPFailures:  uint(terraformDataModel.TCPFailures.ValueInt64()),
-		Timeouts:     uint(terraformDataModel.Timeouts.ValueInt64()),
-		HTTPFailures: uint(terraformDataModel.HTTPFailures.ValueInt64()),
+		TCPFailures:  terraformDataModel.TCPFailures.ValueInt64(),
+		Timeouts:     terraformDataModel.Timeouts.ValueInt64(),
+		HTTPFailures: terraformDataModel.HTTPFailures.ValueInt64(),
 	}
 
 	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)

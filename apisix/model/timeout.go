@@ -36,9 +36,9 @@ func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel *a
 	}
 
 	result := api_client.TimeoutType{
-		Connect: uint(terraformDataModel.Connect.ValueInt64()),
-		Send:    uint(terraformDataModel.Send.ValueInt64()),
-		Read:    uint(terraformDataModel.Read.ValueInt64()),
+		Connect: terraformDataModel.Connect.ValueInt64(),
+		Send:    terraformDataModel.Send.ValueInt64(),
+		Read:    terraformDataModel.Read.ValueInt64(),
 	}
 
 	return &result

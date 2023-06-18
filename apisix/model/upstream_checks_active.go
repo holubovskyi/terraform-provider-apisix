@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -61,12 +62,12 @@ var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
 		"host": schema.StringAttribute{
 			MarkdownDescription: "The hostname of the HTTP request actively checked.",
 			Optional:            true,
-			Computed:            true,
+			Computed:            false,
 		},
 		"port": schema.Int64Attribute{
 			MarkdownDescription: "The host port of the HTTP request that is actively checked.",
 			Optional:            true,
-			Computed:            true,
+			Computed:            false,
 			Validators: []validator.Int64{
 				int64validator.Between(1, 65535),
 			},
@@ -81,6 +82,8 @@ var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
 			MarkdownDescription: "Active check When using HTTP or HTTPS type checking, set additional request header information.",
 			ElementType:         types.StringType,
 			Optional:            true,
+			Computed:            true,
+			Default:             listdefault.StaticValue(types.ListNull(types.StringType)),
 		},
 		"healthy":   UpstreamChecksActiveHealthySchemaAttribute,
 		"unhealthy": UpstreamChecksActiveUnhealthySchemaAttribute,
@@ -94,11 +97,11 @@ func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataMo
 
 	result := api_client.UpstreamChecksActiveType{
 		Type:                   terraformDataModel.Type.ValueString(),
-		Timeout:                uint(terraformDataModel.Timeout.ValueInt64()),
-		Concurrency:            uint(terraformDataModel.Concurrency.ValueInt64()),
+		Timeout:                terraformDataModel.Timeout.ValueInt64(),
+		Concurrency:            terraformDataModel.Concurrency.ValueInt64(),
 		HTTPPath:               terraformDataModel.HTTPPath.ValueString(),
-		Host:                   terraformDataModel.Host.ValueString(),
-		Port:                   uint(terraformDataModel.Port.ValueInt64()),
+		Host:                   terraformDataModel.Host.ValueStringPointer(),
+		Port:                   terraformDataModel.Port.ValueInt64Pointer(),
 		HTTPSVerifyCertificate: terraformDataModel.HTTPSVerifyCertificate.ValueBool(),
 		Healthy:                UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
 		Unhealthy:              UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
@@ -116,11 +119,11 @@ func UpstreamChecksActiveFromApiToTerraform(ctx context.Context, apiDataModel *a
 
 	result := UpstreamChecksActiveType{
 		Type:                   types.StringValue(apiDataModel.Type),
-		Timeout:                types.Int64Value(int64(apiDataModel.Timeout)),
-		Concurrency:            types.Int64Value(int64(apiDataModel.Concurrency)),
+		Timeout:                types.Int64Value(apiDataModel.Timeout),
+		Concurrency:            types.Int64Value(apiDataModel.Concurrency),
 		HTTPPath:               types.StringValue(apiDataModel.HTTPPath),
-		Host:                   types.StringValue(apiDataModel.Host),
-		Port:                   types.Int64Value(int64(apiDataModel.Port)),
+		Host:                   types.StringPointerValue(apiDataModel.Host),
+		Port:                   types.Int64PointerValue(apiDataModel.Port),
 		HTTPSVerifyCertificate: types.BoolValue(apiDataModel.HTTPSVerifyCertificate),
 		Healthy:                UpstreamChecksActiveHealthyFromApiToTerraform(ctx, apiDataModel.Healthy),
 		Unhealthy:              UpstreamChecksActiveUnhealthyFromApiToTerraform(ctx, apiDataModel.Unhealthy),

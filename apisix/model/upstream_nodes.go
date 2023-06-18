@@ -48,8 +48,8 @@ func UpstreamNodesFromTerraformToAPI(ctx context.Context, terraformDataModel *[]
 	for _, v := range *terraformDataModel {
 		result = append(result, api_client.UpstreamNodeType{
 			Host:   v.Host.ValueString(),
-			Port:   uint(v.Port.ValueInt64()),
-			Weight: uint(v.Weight.ValueInt64())})
+			Port:   v.Port.ValueInt64(),
+			Weight: v.Weight.ValueInt64()})
 	}
 	return &result
 }

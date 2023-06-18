@@ -60,8 +60,8 @@ func UpstreamChecksActiveHealthyFromTerraformToApi(ctx context.Context, terrafor
 	}
 
 	result := api_client.UpstreamChecksActiveHealthyType{
-		Interval:  uint(terraformDataModel.Interval.ValueInt64()),
-		Successes: uint(terraformDataModel.Successes.ValueInt64()),
+		Interval:  terraformDataModel.Interval.ValueInt64(),
+		Successes: terraformDataModel.Successes.ValueInt64(),
 	}
 	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
 

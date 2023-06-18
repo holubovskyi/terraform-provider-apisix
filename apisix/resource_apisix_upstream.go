@@ -125,20 +125,120 @@ func (r *upstreamResource) Create(ctx context.Context, req resource.CreateReques
 
 // Read resource information.
 func (r *upstreamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	return
+	tflog.Debug(ctx, "Start of the upstream resource read")
+	// Get current state
+	var state model.UpstreamResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Get refreshed upstream from the APISIX
+	upsreamResponse, err := r.client.GetUpstream(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX Upstream",
+			"Could not read APISIX Upstream by ID "+state.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	// Overwrite with refreshed state
+	newState, labelsDiag := model.UpstreamFromApiToTerraform(ctx, upsreamResponse)
+
+	resp.Diagnostics.Append(labelsDiag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set refreshed state
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-// Update resource.
+// Update the upstream resource.
 func (r *upstreamResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	return
+	tflog.Debug(ctx, "Start of the upstream update")
+	// Retrieve values from plan
+	var plan model.UpstreamResourceModel
+
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Generate API request body from plan
+	updateUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
+
+	resp.Diagnostics.Append(labelsDiag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Update existing upstream
+	_, err := r.client.UpdateUpstream(plan.ID.ValueString(), updateUpstreamRequest)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Updating APISIX Upstream",
+			"Could not update upstream, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	// Fetch updated upstream from APISIX
+	updatedUpstream, err := r.client.GetUpstream(plan.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX Upstream",
+			"Could not read APISIX Upstream by ID "+plan.ID.ValueString()+": "+err.Error(),
+		)
+		return
+	}
+
+	newState, labelsDiag := model.UpstreamFromApiToTerraform(ctx, updatedUpstream)
+	resp.Diagnostics.Append(labelsDiag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // Delete resource.
 func (r *upstreamResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	return
+	tflog.Debug(ctx, "Start of the upstream delete")
+	// Get current state
+	var state model.UpstreamResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Delete existing certificate
+	err := r.client.DeleteUpstream(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Deleting APISIX Upstream",
+			"Could not delete upstream by ID "+state.ID.ValueString()+" unexpected error: "+err.Error(),
+		)
+		return
+	}
 }
 
 // Import resource into state
 func (r *upstreamResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	return
+	tflog.Debug(ctx, "Start of the upstream importing")
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

@@ -36,9 +36,9 @@ func UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel *UpstreamKeepAli
 	}
 
 	result := api_client.UpstreamKeepAlivePoolType{
-		Size:        uint(terraformDataModel.Size.ValueInt64()),
-		IdleTimeout: uint(terraformDataModel.IdleTimeout.ValueInt64()),
-		Requests:    uint(terraformDataModel.Requests.ValueInt64()),
+		Size:        terraformDataModel.Size.ValueInt64(),
+		IdleTimeout: terraformDataModel.IdleTimeout.ValueInt64(),
+		Requests:    terraformDataModel.Requests.ValueInt64(),
 	}
 
 	return &result
