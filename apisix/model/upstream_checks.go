@@ -37,7 +37,7 @@ func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *U
 }
 
 func UpstreamChecksFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksType) (terraformDataModel *UpstreamChecksType) {
-	if terraformDataModel == nil {
+	if apiDataModel == nil {
 		return
 	}
 

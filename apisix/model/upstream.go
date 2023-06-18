@@ -203,6 +203,27 @@ func UpstreamFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Up
 	terraformDataModel.Timeout = TimeoutFromAPIToTerraform(apiDataModel.Timeout)
 	terraformDataModel.KeepalivePool = UpstreamKeepAlivePoolFromAPIToTerraform(apiDataModel.KeepalivePool)
 	terraformDataModel.Checks = UpstreamChecksFromApiToTerraform(ctx, apiDataModel.Checks)
+	terraformDataModel.Nodes = UpstreamNodesFromApiToTerraform(ctx, apiDataModel.Nodes)
 
+	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+		"Type":            terraformDataModel.Type,
+		"ServiceName":     terraformDataModel.ServiceName,
+		"DiscoveryType":   terraformDataModel.DiscoveryType,
+		"Name":            terraformDataModel.Name,
+		"Desc":            terraformDataModel.Desc,
+		"PassHost":        terraformDataModel.PassHost,
+		"Scheme":          terraformDataModel.Scheme,
+		"Retries":         terraformDataModel.Retries,
+		"RetryTimeout":    terraformDataModel.RetryTimeout,
+		"UpstreamHost":    terraformDataModel.UpstreamHost,
+		"HashOn":          terraformDataModel.HashOn,
+		"Key":             terraformDataModel.Key,
+		"TLSClientCertID": terraformDataModel.TLSClientCertID,
+		"Labels":          terraformDataModel.Labels,
+		"Timeout":         terraformDataModel.Timeout,
+		"KeepalivePool":   terraformDataModel.KeepalivePool,
+		"Checks":          terraformDataModel.Checks,
+		"Nodes":           terraformDataModel.Nodes,
+	})
 	return terraformDataModel, labelsDiag
 }

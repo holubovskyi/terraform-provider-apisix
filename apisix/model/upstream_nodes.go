@@ -39,7 +39,7 @@ var UpstreamNodesSchemaAttribute = schema.ListNestedAttribute{
 
 func UpstreamNodesFromTerraformToAPI(ctx context.Context, terraformDataModel *[]UpstreamNodeType) (apiDataModel *[]api_client.UpstreamNodeType) {
 	if terraformDataModel == nil {
-		tflog.Error(ctx, "Can't transform upstream nodes to api model")
+		tflog.Debug(ctx, "Can't transform upstream nodes to api model")
 		return
 	}
 
@@ -50,6 +50,24 @@ func UpstreamNodesFromTerraformToAPI(ctx context.Context, terraformDataModel *[]
 			Host:   v.Host.ValueString(),
 			Port:   uint(v.Port.ValueInt64()),
 			Weight: uint(v.Weight.ValueInt64())})
+	}
+	return &result
+}
+
+func UpstreamNodesFromApiToTerraform(ctx context.Context, apiDataModel *[]api_client.UpstreamNodeType) (terraformDataModel *[]UpstreamNodeType) {
+	if apiDataModel == nil {
+		tflog.Debug(ctx, "Can't transform upstream nodes to terraform model")
+		return
+	}
+
+	var result = []UpstreamNodeType{}
+
+	for _, v := range *apiDataModel {
+		result = append(result, UpstreamNodeType{
+			Host:   types.StringValue(v.Host),
+			Port:   types.Int64Value(int64(v.Port)),
+			Weight: types.Int64Value(int64(v.Weight)),
+		})
 	}
 	return &result
 }

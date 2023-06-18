@@ -87,7 +87,7 @@ func UpstreamChecksPassiveHealthyFromApiToTerraform(ctx context.Context, apiData
 	result := UpstreamChecksPassiveHealthyType{
 		Successes: types.Int64Value(int64(apiDataModel.Successes)),
 	}
-	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.Int64Type, apiDataModel.HTTPStatuses)
 
 	return &result
 }

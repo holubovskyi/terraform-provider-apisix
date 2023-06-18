@@ -78,7 +78,7 @@ func UpstreamChecksActiveHealthyFromApiToTerraform(ctx context.Context, apiDataM
 		Interval:  types.Int64Value(int64(apiDataModel.Interval)),
 		Successes: types.Int64Value(int64(apiDataModel.Successes)),
 	}
-	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.Int64Type, apiDataModel.HTTPStatuses)
 
 	return &result
 }

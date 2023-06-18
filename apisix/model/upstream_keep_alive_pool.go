@@ -45,7 +45,7 @@ func UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel *UpstreamKeepAli
 }
 
 func UpstreamKeepAlivePoolFromAPIToTerraform(apiDataModel *api_client.UpstreamKeepAlivePoolType) (terraformDataModel *UpstreamKeepAlivePoolType) {
-	if terraformDataModel == nil {
+	if apiDataModel == nil {
 		return
 	}
 

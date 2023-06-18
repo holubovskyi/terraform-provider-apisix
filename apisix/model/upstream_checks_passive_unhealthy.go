@@ -94,7 +94,7 @@ func UpstreamChecksPassiveUnhealthyFromApiToTerraform(ctx context.Context, apiDa
 		Timeouts:     types.Int64Value(int64(apiDataModel.Timeouts)),
 		HTTPFailures: types.Int64Value(int64(apiDataModel.HTTPFailures)),
 	}
-	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.HTTPStatuses)
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.Int64Type, apiDataModel.HTTPStatuses)
 
 	return &result
 }
