@@ -39,8 +39,8 @@ resource "apisix_upstream" "example" {
   ]
   checks = {
     active = {
-      host = "example.com"
-      port = 8888
+      host      = "example.com"
+      port      = 8888
       timeout   = 5
       http_path = "/status"
       healthy = {
@@ -51,17 +51,16 @@ resource "apisix_upstream" "example" {
         interval      = 1
         http_failures = 2
       }
-      req_headers = ["User-Agent: curl/7.29.0"]
     }
-    # passive = {
-    #   healthy = {
-    #     http_statuses = [200, 201]
-    #   }
-    #   unhealthy = {
-    #     http_statuses = [500]
-    #     http_failures = 3
-    #     tcp_failures  = 3
-    #   }
-    # }
+    passive = {
+      healthy = {
+        http_statuses = [200, 201]
+      }
+      unhealthy = {
+        http_statuses = [500]
+        http_failures = 3
+        tcp_failures  = 3
+      }
+    }
   }
 }
