@@ -17,7 +17,7 @@ resource "apisix_upstream" "example" {
   desc = "Example of the upstream resource usage"
   type = "roundrobin"
   labels = {
-    "version" : "v1"
+    version: "v1"
   }
   retry_timeout = 30
   timeout = {

@@ -82,6 +82,10 @@ github.com/holubovskyi/apisix-client-go v0.1.4-0.20230618100730-a320468c8392 h1:
 github.com/holubovskyi/apisix-client-go v0.1.4-0.20230618100730-a320468c8392/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
 github.com/holubovskyi/apisix-client-go v0.1.4-0.20230618102257-57ce27dec9b7 h1:ZEIcRv12WVr07m+jZsFFLzEZv472gHiFg8RrubqVEic=
 github.com/holubovskyi/apisix-client-go v0.1.4-0.20230618102257-57ce27dec9b7/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160050-946ec6197ab8 h1:j6EgYRsDYA6APLYzuG8iwN1Dgtq0eJwupSXPjpyVQ94=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160050-946ec6197ab8/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160658-1620310952ea h1:a2O4nMLO4AmDE8ZD9wcdf1FsUe2BkvsiU30M2t5ju/M=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160658-1620310952ea/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
 github.com/jhump/protoreflect v1.6.0 h1:h5jfMVslIg6l29nsMs0D8Wj17RDVdNYti0vDN/PZZoE=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.12 h1:jF+Du6AlPIjs2BiUiQlKOX0rt3SujHxPnksPKZbaA40=
