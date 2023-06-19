@@ -3,10 +3,10 @@ module terraform-provider-apisix
 go 1.19
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.3.0
+	github.com/hashicorp/terraform-plugin-framework v1.3.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.10.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230614103025-47b10a4d50c2
+	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230618102257-57ce27dec9b7
 )
 
 require (

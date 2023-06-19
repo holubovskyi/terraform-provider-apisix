@@ -179,5 +179,6 @@ func (p *apisixProvider) DataSources(_ context.Context) []func() datasource.Data
 func (p *apisixProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewSSLCertificateResource,
+		NewUpstreamResource,
 	}
 }
