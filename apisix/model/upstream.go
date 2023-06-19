@@ -205,7 +205,7 @@ func UpstreamFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Up
 	terraformDataModel.Checks = UpstreamChecksFromApiToTerraform(ctx, apiDataModel.Checks)
 	terraformDataModel.Nodes = UpstreamNodesFromApiToTerraform(ctx, apiDataModel.Nodes)
 
-	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+	tflog.Debug(ctx, "Result of the UpstreamFromApiToTerraform", map[string]any{
 		"Type":            terraformDataModel.Type,
 		"ServiceName":     terraformDataModel.ServiceName,
 		"DiscoveryType":   terraformDataModel.DiscoveryType,
