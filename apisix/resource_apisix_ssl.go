@@ -11,16 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource                   = &sslCertificateResource{}
-	_ resource.ResourceWithConfigure      = &sslCertificateResource{}
-	_ resource.ResourceWithImportState    = &sslCertificateResource{}
-	_ resource.ResourceWithValidateConfig = &sslCertificateResource{}
+	_ resource.Resource                = &sslCertificateResource{}
+	_ resource.ResourceWithConfigure   = &sslCertificateResource{}
+	_ resource.ResourceWithImportState = &sslCertificateResource{}
+	_ resource.ResourceWithModifyPlan  = &sslCertificateResource{}
 )
 
 // NewSSLCertificateResource is a helper function to simplify the provider implementation.
@@ -43,30 +42,31 @@ func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequ
 	resp.Schema = model.SSLCertificateSchema
 }
 
-// Validate that snis are specified when certificate type is `server`
-func (r *sslCertificateResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data model.SSLCertificateResourceModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get Certificate type as a string
-	certificateType, diags := data.Type.ToStringValue(ctx)
+// Implement plan modification
+func (r *sslCertificateResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Retrieve snis value from plan
+	var state model.SSLCertificateResourceModel
+	diags := req.Config.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if certificateType == basetypes.NewStringValue("server") && (data.Snis.IsNull() || len(data.Snis.Elements()) == 0) {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("snis"),
-			"Missing Attribute Configuration",
-			"Expected snis to be configured if the certificate type is server",
-		)
+	if state.Snis.IsNull() || len(state.Snis.Elements()) == 0 {
+		snis, err := model.CertSNIS(state.Certificate.ValueString(), state.PrivateKey.ValueString())
+		if err != nil {
+			tflog.Error(ctx, "Error. SNIS can't be determined")
+		}
+		tflog.Debug(ctx, "The following SNIS are defined for the certificate:", map[string]interface{ any }{
+			"snis": snis,
+		})
+		diags := resp.Plan.SetAttribute(ctx, path.Root("snis"), &snis)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
+
 }
 
 // Configure adds the provider configured client to the resource.
