@@ -21,7 +21,7 @@ var (
 	_ resource.ResourceWithConfigure        = &upstreamResource{}
 	_ resource.ResourceWithImportState      = &upstreamResource{}
 	_ resource.ResourceWithConfigValidators = &upstreamResource{}
-	// _ resource.ResourceWithValidateConfig = &upstreamResource{}
+	_ resource.ResourceWithValidateConfig   = &upstreamResource{}
 )
 
 // NewUpstreamResource is a helper function to simplify the provider implementation.
@@ -55,6 +55,26 @@ func (r *upstreamResource) ConfigValidators(ctx context.Context) []resource.Conf
 			path.MatchRoot("service_name"),
 			path.MatchRoot("discovery_type"),
 		),
+	}
+}
+
+// Validate that snis are specified when certificate type is `server`
+func (r *upstreamResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data model.UpstreamResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Passive health checks should be always combined with the active
+	if data.Checks.Passive != nil && data.Checks.Active == nil {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("checks.active"),
+			"Missing Attribute Configuration",
+			"Passive health checks should be combined with active checks. checks.passive cannot be used without checks.active",
+		)
 	}
 }
 
