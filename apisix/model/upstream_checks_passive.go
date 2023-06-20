@@ -34,6 +34,18 @@ func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataM
 	return &result
 }
 
+func UpstreamChecksPassiveFromTerraformToApiUpdate(ctx context.Context, terraformDataModel *UpstreamChecksPassiveType) (apiDataModel *api_client.UpstreamChecksPassiveTypeUpdate) {
+	if terraformDataModel == nil {
+		return
+	}
+
+	result := api_client.UpstreamChecksPassiveTypeUpdate{
+		Healthy:   UpstreamChecksPassiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
+		Unhealthy: UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
+	}
+
+	return &result
+}
 func UpstreamChecksPassiveFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksPassiveType) (terraformDataModel *UpstreamChecksPassiveType) {
 	if apiDataModel == nil {
 		return

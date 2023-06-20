@@ -6,7 +6,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v1.3.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.10.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160658-1620310952ea
+	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620100734-07ba3542d34a
 )
 
 require (

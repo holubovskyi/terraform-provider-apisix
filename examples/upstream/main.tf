@@ -17,13 +17,7 @@ resource "apisix_upstream" "example" {
   desc = "Example of the upstream resource usage"
   type = "roundrobin"
   labels = {
-    version: "v1"
-  }
-  retry_timeout = 30
-  timeout = {
-    connect = 10
-    send    = 5
-    read    = 5
+    version : "v1"
   }
   nodes = [
     {
@@ -37,6 +31,11 @@ resource "apisix_upstream" "example" {
       weight = 1
     },
   ]
+  keepalive_pool = {
+    idle_timeout = 5
+    requests     = 10
+    size         = 15
+  }
   checks = {
     active = {
       host      = "example.com"

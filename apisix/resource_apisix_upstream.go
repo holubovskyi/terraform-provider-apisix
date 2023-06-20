@@ -46,7 +46,7 @@ func (r *upstreamResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 // Validate Config
 func (r *upstreamResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
-		resourcevalidator.Conflicting(
+		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("service_name"),
 			path.MatchRoot("nodes"),
 		),
@@ -172,7 +172,7 @@ func (r *upstreamResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Generate API request body from plan
-	updateUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
+	updateUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPIUpdate(ctx, &plan)
 
 	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {

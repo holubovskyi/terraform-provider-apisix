@@ -62,6 +62,9 @@ var UpstreamSchema = schema.Schema{
 		"service_name": schema.StringAttribute{
 			MarkdownDescription: "Service name used for service discovery. Can't be used with `nodes`",
 			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
 		"discovery_type": schema.StringAttribute{
 			MarkdownDescription: "The type of service discovery. Required, if `service_name` is used",
@@ -156,6 +159,52 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
 	apiDataModel.KeepalivePool = UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel.KeepalivePool)
 	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
+	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
+
+	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+		"Type":            apiDataModel.Type,
+		"ServiceName":     apiDataModel.ServiceName,
+		"DiscoveryType":   apiDataModel.DiscoveryType,
+		"Name":            apiDataModel.Name,
+		"Desc":            apiDataModel.Desc,
+		"PassHost":        apiDataModel.PassHost,
+		"Scheme":          apiDataModel.Scheme,
+		"Retries":         apiDataModel.Retries,
+		"RetryTimeout":    apiDataModel.RetryTimeout,
+		"UpstreamHost":    apiDataModel.UpstreamHost,
+		"HashOn":          apiDataModel.HashOn,
+		"Key":             apiDataModel.Key,
+		"TLSClientCertID": apiDataModel.TLSClientCertID,
+		"Labels":          apiDataModel.Labels,
+		"Timeout":         apiDataModel.Timeout,
+		"KeepalivePool":   apiDataModel.KeepalivePool,
+		"Checks":          apiDataModel.Checks,
+		"Nodes":           apiDataModel.Nodes,
+	})
+
+	return apiDataModel, labelsDiag
+}
+
+func UpstreamFromTerraformToAPIUpdate(ctx context.Context, terraformDataModel *UpstreamResourceModel) (apiDataModel api_client.UpstreamUpdate, labelsDiag diag.Diagnostics) {
+	apiDataModel.Type = terraformDataModel.Type.ValueStringPointer()
+	apiDataModel.ServiceName = terraformDataModel.ServiceName.ValueStringPointer()
+	apiDataModel.DiscoveryType = terraformDataModel.DiscoveryType.ValueStringPointer()
+	apiDataModel.Name = terraformDataModel.Name.ValueStringPointer()
+	apiDataModel.Desc = terraformDataModel.Desc.ValueStringPointer()
+	apiDataModel.PassHost = terraformDataModel.PassHost.ValueStringPointer()
+	apiDataModel.Scheme = terraformDataModel.Scheme.ValueStringPointer()
+	apiDataModel.Retries = terraformDataModel.Retries.ValueInt64Pointer()
+	apiDataModel.RetryTimeout = terraformDataModel.RetryTimeout.ValueInt64Pointer()
+	apiDataModel.UpstreamHost = terraformDataModel.UpstreamHost.ValueStringPointer()
+	apiDataModel.HashOn = terraformDataModel.HashOn.ValueStringPointer()
+	apiDataModel.Key = terraformDataModel.Key.ValueStringPointer()
+	apiDataModel.TLSClientCertID = terraformDataModel.TLSClientCertID.ValueStringPointer()
+
+	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
+
+	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
+	apiDataModel.KeepalivePool = UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel.KeepalivePool)
+	apiDataModel.Checks = UpstreamChecksFromTerraformToAPIUpdate(ctx, terraformDataModel.Checks)
 	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
 
 	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
