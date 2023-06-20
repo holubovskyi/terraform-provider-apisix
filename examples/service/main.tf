@@ -26,8 +26,19 @@ resource "apisix_service" "example" {
   name  = "Example"
   hosts = ["foo.com", "*.bar.com"]
   labels = {
-    "version" = "0.1"
+    "version" = "v1"
   }
-  enable_websocket = true
+  enable_websocket = false
   upstream_id      = apisix_upstream.example.id
+  plugins          = <<EOF
+{
+	"limit-count": {
+		"count": 2,
+		"time_window": 100,
+		"rejected_code": 503,
+		"key": "remote_addr"
+	},
+	"prometheus": {}
+}
+EOF  
 }

@@ -6,8 +6,10 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v1.3.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.10.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620103454-ad1f1439ae6e
+	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160658-1620310952ea
 )
+
+replace github.com/holubovskyi/apisix-client-go v0.1.4-0.20230619160658-1620310952ea => /home/mholubovskyi/work/scalhive/apisix-client-go
 
 require (
 	github.com/fatih/color v1.13.0 // indirect
