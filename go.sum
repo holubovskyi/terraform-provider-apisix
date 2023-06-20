@@ -30,6 +30,8 @@ github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb h1:b5rjCoWHc7eqmAS
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
 github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620100734-07ba3542d34a h1:4lMJfsFEm5JXJ2H9xmqDN34Qrl3hMGSvgCJAderF1Aw=
 github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620100734-07ba3542d34a/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620103454-ad1f1439ae6e h1:JbVb5wVnEZ6yeIcTRtqGcADYybghN1Tn73N7nbLkGJo=
+github.com/holubovskyi/apisix-client-go v0.1.4-0.20230620103454-ad1f1439ae6e/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
 github.com/jhump/protoreflect v1.6.0 h1:h5jfMVslIg6l29nsMs0D8Wj17RDVdNYti0vDN/PZZoE=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.12 h1:jF+Du6AlPIjs2BiUiQlKOX0rt3SujHxPnksPKZbaA40=
