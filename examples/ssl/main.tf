@@ -16,6 +16,6 @@ resource "apisix_ssl_certificate" "example" {
   private_key = file("example.key")
   type        = "server"
   labels = {
-    "version" : "v1"
+    "version" = "v1"
   }
 }
