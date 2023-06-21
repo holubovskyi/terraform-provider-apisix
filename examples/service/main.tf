@@ -30,15 +30,16 @@ resource "apisix_service" "example" {
   }
   enable_websocket = false
   upstream_id      = apisix_upstream.example.id
-  plugins          = <<EOF
-{
-	"limit-count": {
-		"count": 2,
-		"time_window": 100,
-		"rejected_code": 503,
-		"key": "remote_addr"
-	},
-	"prometheus": {}
-}
-EOF  
+  plugins = jsonencode(
+    {
+      limit-count = {
+        count                   = 10
+        key                     = "remote_addr"
+        rejected_code           = 503
+        show_limit_quota_header = true
+        time_window             = 12
+      },
+      prometheus = {}
+    }
+  )
 }

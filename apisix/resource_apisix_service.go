@@ -7,16 +7,18 @@ import (
 	"github.com/holubovskyi/apisix-client-go"
 
 	"terraform-provider-apisix/apisix/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource                     = &serviceResource{}
-	_ resource.ResourceWithConfigure        = &serviceResource{}
-	_ resource.ResourceWithImportState      = &serviceResource{}
+	_ resource.Resource                = &serviceResource{}
+	_ resource.ResourceWithConfigure   = &serviceResource{}
+	_ resource.ResourceWithImportState = &serviceResource{}
 )
 
 // NewServiceResource is a helper function to simplify the provider implementation.
@@ -80,17 +82,20 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 			"Could not create Service, unexpected error: "+err.Error(),
 		)
 		return
-	}	
+	}
 
 	// Map response body to schema and populate Computed attribute values
 	newState := model.ServiceFromApiToTerraform(ctx, newServiceReponse)
+	if !newState.Plugins.IsNull() {
+		newState.Plugins = types.StringValue(plan.Plugins.ValueString())
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}	
+	}
 }
 
 // Read resource information.
@@ -103,7 +108,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	
+
 	// Get refreshed service from the APISIX
 	serviceStateResponse, err := r.client.GetService(state.ID.ValueString())
 	if err != nil {
@@ -116,6 +121,9 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Overwrite with refreshed state
 	newState := model.ServiceFromApiToTerraform(ctx, serviceStateResponse)
+	if !newState.Plugins.IsNull() {
+		newState.Plugins = types.StringValue(state.Plugins.ValueString())
+	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &newState)
@@ -137,7 +145,7 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Generate API request body from plan
-	updateServiceRequest := model.ServiceFromTerraformToApi(ctx, &plan)
+	updateServiceRequest := model.ServiceFromTerraformToApiUpdate(ctx, &plan)
 
 	// Update existing service
 	_, err := r.client.UpdateService(plan.ID.ValueString(), updateServiceRequest)
@@ -147,7 +155,7 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 			"Could not update Service, unexpected error: "+err.Error(),
 		)
 		return
-	}	
+	}
 
 	// Fetch updated service
 	updatedService, err := r.client.GetService(plan.ID.ValueString())
@@ -158,15 +166,18 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		)
 		return
 	}
-	
+
 	newState := model.ServiceFromApiToTerraform(ctx, updatedService)
+	if !newState.Plugins.IsNull() {
+		newState.Plugins = types.StringValue(plan.Plugins.ValueString())
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}	
+	}
 }
 
 // Delete resource.
@@ -178,7 +189,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}	
+	}
 
 	// Delete the service
 	err := r.client.DeleteService(state.ID.ValueString())
@@ -188,7 +199,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 			"Could not delete service, unexpected error: "+err.Error(),
 		)
 		return
-	}	
+	}
 }
 
 // Import resource into state
