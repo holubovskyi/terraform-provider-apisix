@@ -112,28 +112,6 @@ func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataMo
 	return &result
 }
 
-func UpstreamChecksActiveFromTerraformToApiUpdate(ctx context.Context, terraformDataModel *UpstreamChecksActiveType) (apiDataModel *api_client.UpstreamChecksActiveTypeUpdate) {
-	if terraformDataModel == nil {
-		return
-	}
-
-	result := api_client.UpstreamChecksActiveTypeUpdate{
-		Type:                   terraformDataModel.Type.ValueString(),
-		Timeout:                terraformDataModel.Timeout.ValueInt64(),
-		Concurrency:            terraformDataModel.Concurrency.ValueInt64(),
-		HTTPPath:               terraformDataModel.HTTPPath.ValueString(),
-		Host:                   terraformDataModel.Host.ValueStringPointer(),
-		Port:                   terraformDataModel.Port.ValueInt64Pointer(),
-		HTTPSVerifyCertificate: terraformDataModel.HTTPSVerifyCertificate.ValueBool(),
-		Healthy:                UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
-		Unhealthy:              UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
-	}
-
-	_ = terraformDataModel.ReqHeaders.ElementsAs(ctx, &result.ReqHeaders, false)
-
-	return &result
-}
-
 func UpstreamChecksActiveFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksActiveType) (terraformDataModel *UpstreamChecksActiveType) {
 	if apiDataModel == nil {
 		return

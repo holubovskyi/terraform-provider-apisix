@@ -36,19 +36,6 @@ func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *U
 	return &result
 }
 
-func UpstreamChecksFromTerraformToAPIUpdate(ctx context.Context, terraformDataModel *UpstreamChecksType) (apiDataModel *api_client.UpstreamChecksTypeUpdate) {
-	if terraformDataModel == nil {
-		return
-	}
-
-	result := api_client.UpstreamChecksTypeUpdate{
-		Active:  UpstreamChecksActiveFromTerraformToApiUpdate(ctx, terraformDataModel.Active),
-		Passive: UpstreamChecksPassiveFromTerraformToApiUpdate(ctx, terraformDataModel.Passive),
-	}
-
-	return &result
-}
-
 func UpstreamChecksFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksType) (terraformDataModel *UpstreamChecksType) {
 	if apiDataModel == nil {
 		return

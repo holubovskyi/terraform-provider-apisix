@@ -172,7 +172,7 @@ func (r *upstreamResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Generate API request body from plan
-	updateUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPIUpdate(ctx, &plan)
+	updateUpstreamRequest, labelsDiag := model.UpstreamFromTerraformToAPI(ctx, &plan)
 
 	resp.Diagnostics.Append(labelsDiag...)
 	if resp.Diagnostics.HasError() {
