@@ -145,7 +145,7 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Generate API request body from plan
-	updateServiceRequest := model.ServiceFromTerraformToApiUpdate(ctx, &plan)
+	updateServiceRequest := model.ServiceFromTerraformToApi(ctx, &plan)
 
 	// Update existing service
 	_, err := r.client.UpdateService(plan.ID.ValueString(), updateServiceRequest)

@@ -28,7 +28,7 @@ resource "apisix_service" "example" {
   labels = {
     "version" = "v1"
   }
-  enable_websocket = false
+  enable_websocket = true
   upstream_id      = apisix_upstream.example.id
   plugins = jsonencode(
     {
