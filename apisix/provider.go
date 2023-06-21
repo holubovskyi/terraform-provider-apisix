@@ -180,6 +180,7 @@ func (p *apisixProvider) Resources(_ context.Context) []func() resource.Resource
 	return []func() resource.Resource{
 		NewSSLCertificateResource,
 		NewUpstreamResource,
-		NewServicesource,
+		NewServiceResource,
+		NewConsumerResource,
 	}
 }

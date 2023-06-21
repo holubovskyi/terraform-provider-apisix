@@ -14,13 +14,15 @@ provider "apisix" {
 resource "apisix_consumer" "example" {
   username = "example"
   desc     = "Example of the consumer"
-  plugins = {
-    basic_auth = {
-      username = "example"
-      password = "changeMe"
-    }
-  }
   labels = {
     "version" = "v1"
   }
+  plugins = jsonencode(
+    {
+      basic-auth = {
+        username = "example"
+        password = "changeme2"
+      }
+    }
+  )
 }
