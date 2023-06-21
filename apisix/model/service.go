@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// SSLCertificateResourceModel maps the resource schema data.
+// ServiceResourceModel maps the resource schema data.
 type ServiceResourceModel struct {
 	ID              types.String `tfsdk:"id"`
 	Name            types.String `tfsdk:"name"`

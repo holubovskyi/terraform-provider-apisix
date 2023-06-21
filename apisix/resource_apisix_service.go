@@ -22,7 +22,7 @@ var (
 )
 
 // NewServiceResource is a helper function to simplify the provider implementation.
-func NewServicesource() resource.Resource {
+func NewServiceResource() resource.Resource {
 	return &serviceResource{}
 }
 

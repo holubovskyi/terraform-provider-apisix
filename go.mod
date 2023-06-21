@@ -9,6 +9,8 @@ require (
 	github.com/holubovskyi/apisix-client-go v0.1.4-0.20230621083625-27b927bfdd8c
 )
 
+replace github.com/holubovskyi/apisix-client-go v0.1.4-0.20230621083625-27b927bfdd8c => /home/mholubovskyi/work/scalhive/apisix-client-go
+
 require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
