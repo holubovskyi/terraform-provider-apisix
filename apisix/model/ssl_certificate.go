@@ -67,7 +67,7 @@ var SSLCertificateSchema = schema.Schema{
 			Default:  stringdefault.StaticString("server"),
 			Validators: []validator.String{
 				// Validate string value must be "server" or "client"
-				stringvalidator.OneOfCaseInsensitive([]string{"server", "client"}...),
+				stringvalidator.OneOf([]string{"server", "client"}...),
 			},
 		},
 		"labels": schema.MapAttribute{

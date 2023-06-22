@@ -38,7 +38,7 @@ var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
 			Computed:            true,
 			Default:             stringdefault.StaticString("http"),
 			Validators: []validator.String{
-				stringvalidator.OneOfCaseInsensitive([]string{"http", "https", "tcp"}...),
+				stringvalidator.OneOf([]string{"http", "https", "tcp"}...),
 			},
 		},
 		"timeout": schema.Int64Attribute{
