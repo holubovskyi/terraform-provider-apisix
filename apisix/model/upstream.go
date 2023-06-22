@@ -56,7 +56,7 @@ var UpstreamSchema = schema.Schema{
 			Computed: true,
 			Default:  stringdefault.StaticString("roundrobin"),
 			Validators: []validator.String{
-				stringvalidator.OneOfCaseInsensitive([]string{"roundrobin", "chash", "ewma", "least_conn"}...),
+				stringvalidator.OneOf([]string{"roundrobin", "chash", "ewma", "least_conn"}...),
 			},
 		},
 		"service_name": schema.StringAttribute{
@@ -86,7 +86,7 @@ var UpstreamSchema = schema.Schema{
 			Computed: true,
 			Default:  stringdefault.StaticString("pass"),
 			Validators: []validator.String{
-				stringvalidator.OneOfCaseInsensitive([]string{"pass", "node", "rewrite"}...),
+				stringvalidator.OneOf([]string{"pass", "node", "rewrite"}...),
 			},
 		},
 		"scheme": schema.StringAttribute{
@@ -97,7 +97,7 @@ var UpstreamSchema = schema.Schema{
 			Computed: true,
 			Default:  stringdefault.StaticString("http"),
 			Validators: []validator.String{
-				stringvalidator.OneOfCaseInsensitive([]string{"http", "https", "grpc", "grpcs", "tcp", "udp", "tls"}...),
+				stringvalidator.OneOf([]string{"http", "https", "grpc", "grpcs", "tcp", "udp", "tls"}...),
 			},
 		},
 		"retries": schema.Int64Attribute{
