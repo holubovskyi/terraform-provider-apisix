@@ -185,5 +185,6 @@ func (p *apisixProvider) Resources(_ context.Context) []func() resource.Resource
 		NewRouteResource,
 		NewGlobalRuleResource,
 		NewStreamRouteResource,
+		NewConsumerGroupResource,
 	}
 }
