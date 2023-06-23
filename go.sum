@@ -28,8 +28,8 @@ github.com/hashicorp/terraform-svchost v0.0.1 h1:Zj6fR5wnpOHnJUmLyWozjMeDaVuE+cs
 github.com/hashicorp/terraform-svchost v0.0.1/go.mod h1:ut8JaH0vumgdCfJaihdcZULqkAwHdQNwNH7taIDdsZM=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb h1:b5rjCoWHc7eqmAS4/qyk21ZsHyb6Mxv/jykxvNTkU4M=
 github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb/go.mod h1:+NfK9FKeTrX5uv1uIXGdwYDTeHna2qgaIlx54MXqjAM=
-github.com/holubovskyi/apisix-client-go v0.1.4-0.20230621083625-27b927bfdd8c h1:itsDdR8ZdhjCGP6c3sHz1W3Zo4bZx3DL+we82u98QYE=
-github.com/holubovskyi/apisix-client-go v0.1.4-0.20230621083625-27b927bfdd8c/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
+github.com/holubovskyi/apisix-client-go v1.0.0 h1:koljxmIHF5CoKnn7dYlBawiJfTo1XY8SPz2yFnjgauw=
+github.com/holubovskyi/apisix-client-go v1.0.0/go.mod h1:82lJf7tYe+H6P/OePSvpcefbKPUmlIcUKJdCJXOJyN8=
 github.com/jhump/protoreflect v1.6.0 h1:h5jfMVslIg6l29nsMs0D8Wj17RDVdNYti0vDN/PZZoE=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.12 h1:jF+Du6AlPIjs2BiUiQlKOX0rt3SujHxPnksPKZbaA40=
