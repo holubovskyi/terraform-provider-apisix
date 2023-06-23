@@ -157,7 +157,7 @@ func (r *consumerGroupResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	// Fetch updated rule
+	// Fetch updated consumer group
 	updatedConsumerGroup, err := r.client.GetConsumerGroup(plan.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -204,7 +204,7 @@ func (r *consumerGroupResource) Delete(ctx context.Context, req resource.DeleteR
 
 // Import resource into state
 func (r *consumerGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Debug(ctx, "Start of the rule importing")
+	tflog.Debug(ctx, "Start of the consumer group importing")
 	// Retrieve import ID and save to id attribute
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
