@@ -81,14 +81,8 @@ func ServiceFromTerraformToApi(ctx context.Context, terraformDataModel *ServiceR
 
 	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
 
-	tflog.Info(ctx, "Result of ServiceFromTerraformToApi", map[string]interface{ any }{
-		"Name":            apiDataModel.Name,
-		"Description":     apiDataModel.Description,
-		"EnableWebsocket": apiDataModel.EnableWebsocket,
-		"UpstreamId":      apiDataModel.UpstreamId,
-		"Hosts":           apiDataModel.Hosts,
-		"Labels":          apiDataModel.Labels,
-		"Plugins":         apiDataModel.Plugins,
+	tflog.Debug(ctx, "Result of ServiceFromTerraformToApi", map[string]any{
+		"Values": apiDataModel,
 	})
 
 	return apiDataModel
@@ -106,14 +100,8 @@ func ServiceFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Ser
 
 	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
 
-	tflog.Info(ctx, "Result of ServiceFromApiToTerraform", map[string]interface{ any }{
-		"Name":            terraformDataModel.Name,
-		"Description":     terraformDataModel.Description,
-		"EnableWebsocket": terraformDataModel.EnableWebsocket,
-		"UpstreamId":      terraformDataModel.UpstreamId,
-		"Hosts":           terraformDataModel.Hosts,
-		"Labels":          terraformDataModel.Labels,
-		"Plugins":         terraformDataModel.Plugins,
+	tflog.Debug(ctx, "Result of the ServiceFromApiToTerraform", map[string]any{
+		"Values": terraformDataModel,
 	})
 
 	return terraformDataModel

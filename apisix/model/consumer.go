@@ -60,12 +60,8 @@ func ConsumerFromTerraformToApi(ctx context.Context, terraformDataModel *Consume
 
 	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
 
-	tflog.Info(ctx, "Result of ConsumerFromTerraformToApi", map[string]interface{ any }{
-		"Username":    apiDataModel.Username,
-		"Description": apiDataModel.Description,
-		"Labels":      apiDataModel.Labels,
-		"GroupId":     apiDataModel.GroupId,
-		"Plugins":     apiDataModel.Plugins,
+	tflog.Debug(ctx, "Result of ConsumerFromTerraformToApi", map[string]any{
+		"Values": apiDataModel,
 	})
 
 	return apiDataModel
@@ -80,12 +76,8 @@ func ConsumerFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Co
 
 	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
 
-	tflog.Info(ctx, "Result of ConsumerFromApiToTerraform", map[string]interface{ any }{
-		"Username":    terraformDataModel.Username,
-		"Description": terraformDataModel.Description,
-		"Labels":      terraformDataModel.Labels,
-		"GroupId":     terraformDataModel.GroupId,
-		"Plugins":     terraformDataModel.Plugins,
+	tflog.Debug(ctx, "Result of ConsumerFromApiToTerraform", map[string]any{
+		"Values": terraformDataModel,
 	})
 
 	return terraformDataModel
