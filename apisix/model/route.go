@@ -1,320 +1,245 @@
 package model
 
 import (
-	"reflect"
-	"terraform-provider-apisix/apisix/common"
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type RouteType struct {
-	ID              types.String  `tfsdk:"id"`
-	Description     types.String  `tfsdk:"desc"`
-	EnableWebsocket types.Bool    `tfsdk:"enable_websocket"`
-	FilterFunc      types.String  `tfsdk:"filter_func"`
-	Host            types.String  `tfsdk:"host"`
-	Hosts           types.List    `tfsdk:"hosts"`
-	IsEnabled       types.Bool    `tfsdk:"is_enabled"`
-	Labels          types.Map     `tfsdk:"labels"`
-	Methods         types.List    `tfsdk:"methods"`
-	Name            types.String  `tfsdk:"name"`
-	PluginConfigId  types.String  `tfsdk:"plugin_config_id"`
-	Plugins         *PluginsType  `tfsdk:"plugins"`
-	Priority        types.Number  `tfsdk:"priority"`
-	RemoteAddr      types.String  `tfsdk:"remote_addr"`
-	RemoteAddrs     types.List    `tfsdk:"remote_addrs"`
-	Script          types.String  `tfsdk:"script"`
-	ServiceId       types.String  `tfsdk:"service_id"`
-	URI             types.String  `tfsdk:"uri"`
-	URIS            types.List    `tfsdk:"uris"`
-	Upstream        *UpstreamType `tfsdk:"upstream"`
-	UpstreamId      types.String  `tfsdk:"upstream_id"`
-	Vars            types.String  `tfsdk:"vars"`
+// RouteResourceModel maps the resource schema data.
+type RouteResourceModel struct {
+	ID              types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Description     types.String `tfsdk:"desc"`
+	URI             types.String `tfsdk:"uri"`
+	URIS            types.List   `tfsdk:"uris"`
+	Host            types.String `tfsdk:"host"`
+	Hosts           types.List   `tfsdk:"hosts"`
+	RemoteAddr      types.String `tfsdk:"remote_addr"`
+	RemoteAddrs     types.List   `tfsdk:"remote_addrs"`
+	Methods         types.List   `tfsdk:"methods"`
+	Priority        types.Int64  `tfsdk:"priority"`
+	Vars            types.String `tfsdk:"vars"`
+	FilterFunc      types.String `tfsdk:"filter_func"`
+	Plugins         types.String `tfsdk:"plugins"`
+	Script          types.String `tfsdk:"script"`
+	UpstreamId      types.String `tfsdk:"upstream_id"`
+	ServiceId       types.String `tfsdk:"service_id"`
+	PluginConfigId  types.String `tfsdk:"plugin_config_id"`
+	Labels          types.Map    `tfsdk:"labels"`
+	Timeout         *TimeoutType `tfsdk:"timeout"`
+	EnableWebsocket types.Bool   `tfsdk:"enable_websocket"`
+	Status          types.Int64  `tfsdk:"status"`
 }
 
-var RouteSchema = tfsdk.Schema{
-	Version: 8,
-	Attributes: map[string]tfsdk.Attribute{
-		"id": {
-			Type:     types.StringType,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.UseStateForUnknown(),
+var RouteSchema = schema.Schema{
+	Description: "Manages routes",
+	Attributes: map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Identifier of the route.",
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"name": {
-			Type:     types.StringType,
-			Required: true,
+		"name": schema.StringAttribute{
+			Description: "Identifier for the route.",
+			Optional:    true,
 		},
-		"desc": {
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("Managed by Terraform"),
+		"desc": schema.StringAttribute{
+			Description: "Description of usage scenarios.",
+			Optional:    true,
+		},
+		"uri": schema.StringAttribute{
+			Description: "Matches the uri.",
+			Optional:    true,
+		},
+		"uris": schema.ListAttribute{
+			MarkdownDescription: "Matches with any one of the multiple `uri`s specified in the form of a non-empty list.",
+			ElementType:         types.StringType,
+			Optional:            true,
+		},
+		"host": schema.StringAttribute{
+			Description: "Matches with domain names such as `foo.com` or PAN domain names like `*.foo.com`.",
+			Optional:    true,
+		},
+		"hosts": schema.ListAttribute{
+			MarkdownDescription: "Matches with any one of the multiple `host`s specified in the form of a non-empty list.",
+			ElementType:         types.StringType,
+			Optional:            true,
+		},
+		"remote_addr": schema.StringAttribute{
+			Description: "Matches with the specified IP address in standard IPv4 format (`192.168.1.101`), CIDR format (`192.168.1.0/24`), or in IPv6 format.",
+			Optional:    true,
+		},
+		"remote_addrs": schema.ListAttribute{
+			MarkdownDescription: "Matches with any one of the multiple `remote_addrs` specified in the form of a non-empty list.",
+			ElementType:         types.StringType,
+			Optional:            true,
+		},
+		"methods": schema.ListAttribute{
+			MarkdownDescription: "Matches with the specified HTTP methods. Matches all methods if empty or unspecified.",
+			ElementType:         types.StringType,
+			Optional:            true,
+			Validators: []validator.List{
+				listvalidator.UniqueValues(),
+				listvalidator.ValueStringsAre(
+					stringvalidator.OneOf(HttpMethods...),
+				),
 			},
 		},
-		"uri": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("uris"),
-			},
-		},
-		"uris": {
-			Type:     types.ListType{ElemType: types.StringType},
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("uri"),
-			},
-		},
-		"host": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("hosts"),
-			},
-		},
-		"hosts": {
-			Type:     types.ListType{ElemType: types.StringType},
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("host"),
-			},
-		},
-		"remote_addr": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("remote_addrs"),
-			},
-		},
-		"remote_addrs": {
-			Type:     types.ListType{ElemType: types.StringType},
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("remote_addr"),
-			},
-		},
-		"methods": {
-			Type:     types.ListType{ElemType: types.StringType},
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.StringOfStringInSlice(common.HttpMethods...),
-			},
-		},
-		"priority": {
-			Type:     types.NumberType,
+		"priority": schema.Int64Attribute{
+			MarkdownDescription: "If different Routes matches to the same `uri`, then the Route is matched based on its `priority`." +
+				"A higher value corresponds to higher priority." +
+				"It is set to `0` by default.",
 			Optional: true,
 			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(0),
+			Default:  int64default.StaticInt64(0),
+		},
+		"vars": schema.StringAttribute{
+			MarkdownDescription: "Matches based on the specified variables consistent with variables in Nginx. Takes the form `[[var, operator, val], [var, operator, val], ...]]`.",
+			Optional:            true,
+		},
+		"filter_func": schema.StringAttribute{
+			MarkdownDescription: "Matches based on a user-defined filtering function." +
+				"Used in scenarios requiring complex matching. These functions can accept an input parameter `vars` which can be used to access the Nginx variables.",
+			Optional: true,
+		},
+		"plugins": schema.StringAttribute{
+			Description: "Plugins that are executed during the request/response cycle.",
+			Optional:    true,
+		},
+		"plugin_config_id": schema.StringAttribute{
+			Description: "Plugin config bound to the Route.",
+			Optional:    true,
+		},
+		"script": schema.StringAttribute{
+			Description: "Used for writing arbitrary Lua code or directly calling existing plugins to be executed.",
+			Optional:    true,
+		},
+		"upstream_id": schema.StringAttribute{
+			Description: "Id of the Upstream service.",
+			Optional:    true,
+		},
+		"service_id": schema.StringAttribute{
+			Description: "Configuration of the bound Service.",
+			Optional:    true,
+		},
+		"labels": schema.MapAttribute{
+			Description: "Attributes of the Service specified as key-value pairs.",
+			ElementType: types.StringType,
+			Optional:    true,
+		},
+		"timeout": TimeoutSchemaAttribute,
+		"enable_websocket": schema.BoolAttribute{
+			MarkdownDescription: "Enables a websocket. Set to `false` by default.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"status": schema.Int64Attribute{
+			MarkdownDescription: "Enables the current Route. Set to `1` (enabled) by default. `1` to enable, `0` to disable",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(1),
+			Validators: []validator.Int64{
+				int64validator.OneOf([]int64{0, 1}...),
 			},
-		},
-
-		"is_enabled": {
-			Type:     types.BoolType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultBool(true),
-			},
-		},
-		"enable_websocket": {
-			Type:     types.BoolType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultBool(false),
-			},
-		},
-		"service_id": {
-			Type:     types.StringType,
-			Optional: true,
-		},
-		"upstream_id": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("upstream"),
-			},
-		},
-		//
-		"labels": {
-			Optional: true,
-			Type:     types.MapType{ElemType: types.StringType},
-		},
-
-		//"timeout": TimeoutSchemaAttribute,
-		"script": {
-			Optional: true,
-			Type:     types.StringType,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("plugin_config_id"),
-			},
-		},
-		"plugin_config_id": {
-			Optional: true,
-			Type:     types.StringType,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("script"),
-			},
-		},
-		"filter_func": {
-			Optional: true,
-			Type:     types.StringType,
-		},
-		"plugins": {
-			Optional:   true,
-			Attributes: PluginsSchemaAttribute,
-		},
-		"upstream": UpstreamSchemaSAttribute,
-		"vars": {
-			Optional: true,
-			Type:     types.StringType,
 		},
 	},
 }
 
-func RouteTypeMapToState(jsonMap map[string]interface{}) (*RouteType, error) {
-	newState := RouteType{}
+func RouteFromTerraformToApi(ctx context.Context, terraformDataModel *RouteResourceModel) (apiDataModel api_client.Route) {
+	apiDataModel.Name = terraformDataModel.Name.ValueStringPointer()
+	apiDataModel.Description = terraformDataModel.Description.ValueStringPointer()
+	apiDataModel.URI = terraformDataModel.URI.ValueStringPointer()
 
-	utils.MapValueToStringTypeValue(jsonMap, "id", &newState.ID)
-	utils.MapValueToStringTypeValue(jsonMap, "name", &newState.Name)
-	utils.MapValueToStringTypeValue(jsonMap, "desc", &newState.Description)
-	utils.MapValueToStringTypeValue(jsonMap, "uri", &newState.URI)
-	utils.MapValueToListTypeValue(jsonMap, "uris", &newState.URIS)
-	utils.MapValueToStringTypeValue(jsonMap, "host", &newState.Host)
-	utils.MapValueToListTypeValue(jsonMap, "hosts", &newState.Hosts)
-	utils.MapValueToStringTypeValue(jsonMap, "remote_addr", &newState.RemoteAddr)
-	utils.MapValueToListTypeValue(jsonMap, "remote_addrs", &newState.RemoteAddrs)
-	utils.MapValueToListTypeValue(jsonMap, "methods", &newState.Methods)
-	utils.MapValueToNumberTypeValue(jsonMap, "priority", &newState.Priority)
-	utils.MapValueToStringTypeValue(jsonMap, "filter_func", &newState.FilterFunc)
-	utils.MapValueToStringTypeValue(jsonMap, "script", &newState.Script)
-	utils.MapValueToStringTypeValue(jsonMap, "upstream_id", &newState.UpstreamId)
-	utils.MapValueToStringTypeValue(jsonMap, "service_id", &newState.ServiceId)
-	utils.MapValueToStringTypeValue(jsonMap, "plugin_config_id", &newState.PluginConfigId)
-	utils.MapValueToBoolTypeValue(jsonMap, "enable_websocket", &newState.EnableWebsocket)
-	newState.Vars = varsMapToState(jsonMap)
+	terraformDataModel.URIS.ElementsAs(ctx, &apiDataModel.URIS, false)
 
-	if v := jsonMap["status"]; v != nil {
-		if v.(float64) == 1 {
-			newState.IsEnabled = types.Bool{Value: true}
-		} else {
-			newState.IsEnabled = types.Bool{Value: false}
-		}
-	} else {
-		newState.IsEnabled = types.Bool{Null: true}
-	}
+	apiDataModel.Host = terraformDataModel.Host.ValueStringPointer()
 
-	utils.MapValueToMapTypeValue(jsonMap, "labels", &newState.Labels)
+	terraformDataModel.Hosts.ElementsAs(ctx, &apiDataModel.Hosts, false)
 
-	upstream, err := UpstreamTypeMapToState(jsonMap, false)
-	if err != nil {
-		return nil, err
-	}
-	newState.Upstream = upstream
+	apiDataModel.RemoteAddr = terraformDataModel.RemoteAddr.ValueStringPointer()
 
-	if v := jsonMap["plugins"]; v != nil {
-		value := v.(map[string]interface{})
-		pluginsType := PluginsType{}
+	terraformDataModel.RemoteAddrs.ElementsAs(ctx, &apiDataModel.RemoteAddrs, false)
+	terraformDataModel.Methods.ElementsAs(ctx, &apiDataModel.Methods, false)
 
-		e := reflect.ValueOf(&pluginsType).Elem()
-		for i := 0; i < e.NumField(); i++ {
-			switch e.Field(i).Interface().(type) {
-			case PluginCommonInterface:
-				reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).MapToState(value, &pluginsType)
-			default:
+	apiDataModel.Priority = terraformDataModel.Priority.ValueInt64Pointer()
 
-			}
-		}
+	apiDataModel.Vars = VarsStringToJson(ctx, terraformDataModel.Vars)
 
-		//PluginCustomTypeMapToState(value, &pluginsType, plan, state)
-		newState.Plugins = &pluginsType
-	} else {
-		newState.Plugins = nil
-	}
+	apiDataModel.FilterFunc = terraformDataModel.FilterFunc.ValueStringPointer()
+	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
+	apiDataModel.Script = terraformDataModel.Script.ValueStringPointer()
+	apiDataModel.UpstreamId = terraformDataModel.UpstreamId.ValueStringPointer()
+	apiDataModel.ServiceId = terraformDataModel.ServiceId.ValueStringPointer()
+	apiDataModel.PluginConfigId = terraformDataModel.PluginConfigId.ValueStringPointer()
 
-	return &newState, nil
+	terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
+
+	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
+
+	apiDataModel.EnableWebsocket = terraformDataModel.EnableWebsocket.ValueBoolPointer()
+	apiDataModel.Status = terraformDataModel.Status.ValueInt64Pointer()
+
+	tflog.Debug(ctx, "Result of the RouteFromTerraformToApi", map[string]any{
+		"Values": apiDataModel,
+	})
+
+	return apiDataModel
 }
 
-func RouteTypeStateToMap(plan RouteType) (map[string]interface{}, error) {
+func RouteFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Route) (terraformDataModel RouteResourceModel) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Name = types.StringPointerValue(apiDataModel.Name)
+	terraformDataModel.Description = types.StringPointerValue(apiDataModel.Description)
+	terraformDataModel.URI = types.StringPointerValue(apiDataModel.URI)
 
-	output := make(map[string]interface{})
+	terraformDataModel.URIS, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.URIS)
 
-	utils.StringTypeValueToMap(plan.Name, output, "name")
-	utils.StringTypeValueToMap(plan.Description, output, "desc")
-	utils.StringTypeValueToMap(plan.URI, output, "uri")
-	utils.ListTypeValueToMap(plan.URIS, output, "uris")
-	utils.StringTypeValueToMap(plan.Host, output, "host")
-	utils.ListTypeValueToMap(plan.Hosts, output, "hosts")
-	utils.StringTypeValueToMap(plan.RemoteAddr, output, "remote_addr")
-	utils.ListTypeValueToMap(plan.RemoteAddrs, output, "remote_addrs")
-	utils.ListTypeValueToMap(plan.Methods, output, "methods")
-	utils.NumberTypeValueToMap(plan.Priority, output, "priority")
+	terraformDataModel.Host = types.StringPointerValue(apiDataModel.Host)
 
-	if !plan.IsEnabled.Null {
-		if plan.IsEnabled.Value {
-			output["status"] = 1
-		} else {
-			output["status"] = 0
-		}
-	}
+	terraformDataModel.Hosts, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.Hosts)
 
-	utils.BoolTypeValueToMap(plan.EnableWebsocket, output, "enable_websocket")
-	utils.StringTypeValueToMap(plan.ServiceId, output, "service_id")
-	utils.StringTypeValueToMap(plan.UpstreamId, output, "upstream_id")
-	utils.MapTypeValueToMap(plan.Labels, output, "labels")
-	utils.StringTypeValueToMap(plan.Script, output, "script")
-	utils.StringTypeValueToMap(plan.PluginConfigId, output, "plugin_config_id")
-	utils.StringTypeValueToMap(plan.FilterFunc, output, "filter_func")
+	terraformDataModel.RemoteAddr = types.StringPointerValue(apiDataModel.RemoteAddr)
 
-	varsStateToMap(plan.Vars, output)
+	terraformDataModel.RemoteAddrs, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.RemoteAddrs)
 
-	plugins := make(map[string]interface{})
-	if plan.Plugins != nil {
-		planPlugins := plan.Plugins
+	terraformDataModel.Methods, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.Methods)
+	terraformDataModel.Priority = types.Int64PointerValue(apiDataModel.Priority)
 
-		e := reflect.ValueOf(planPlugins).Elem()
-		for i := 0; i < e.NumField(); i++ {
+	terraformDataModel.Vars = VarsFromJsonToString(ctx, apiDataModel.Vars)
 
-			if !e.Field(i).IsNil() {
-				switch e.Field(i).Interface().(type) {
-				case PluginCommonInterface:
-					e.Field(i).Interface().(PluginCommonInterface).StateToMap(plugins)
-				default:
+	terraformDataModel.FilterFunc = types.StringPointerValue(apiDataModel.FilterFunc)
+	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
+	terraformDataModel.Script = types.StringPointerValue(apiDataModel.Script)
+	terraformDataModel.UpstreamId = types.StringPointerValue(apiDataModel.UpstreamId)
+	terraformDataModel.ServiceId = types.StringPointerValue(apiDataModel.ServiceId)
+	terraformDataModel.PluginConfigId = types.StringPointerValue(apiDataModel.PluginConfigId)
 
-				}
+	terraformDataModel.Labels, _ = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-			}
-			//else if isUpdate {
-			//	switch e.Field(i).Interface().(type) {
-			//	case PluginCommonInterface:
-			//		plugins[reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).Name()] = nil
-			//	default:
-			//	}
-			//}
-		}
+	terraformDataModel.Timeout = TimeoutFromAPIToTerraform(apiDataModel.Timeout)
 
-		//PluginCustomTypeStateToMap(plugins, plan, state, isUpdate)
+	terraformDataModel.EnableWebsocket = types.BoolPointerValue(apiDataModel.EnableWebsocket)
+	terraformDataModel.Status = types.Int64PointerValue(apiDataModel.Status)
 
-		output["plugins"] = plugins
-	}
+	tflog.Debug(ctx, "Result of the RouteFromApiToTerraform", map[string]any{
+		"Values": terraformDataModel,
+	})
 
-	upstream, err := UpstreamTypeStateToMap(plan.Upstream)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if upstream != nil {
-		output["upstream"] = upstream
-	}
-
-	return output, nil
+	return terraformDataModel
 }

@@ -1,206 +1,232 @@
 package model
 
 import (
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type UpstreamType struct {
-	ID            types.String               `tfsdk:"id"`
-	Type          types.String               `tfsdk:"type"`
-	ServiceName   types.String               `tfsdk:"service_name"`
-	DiscoveryType types.String               `tfsdk:"discovery_type"`
-	Timeout       *TimeoutType               `tfsdk:"timeout"`
-	Name          types.String               `tfsdk:"name"`
-	Desc          types.String               `tfsdk:"desc"`
-	PassHost      types.String               `tfsdk:"pass_host"`
-	Scheme        types.String               `tfsdk:"scheme"`
-	Retries       types.Number               `tfsdk:"retries"`
-	RetryTimeout  types.Number               `tfsdk:"retry_timeout"`
-	Labels        types.Map                  `tfsdk:"labels"`
-	UpstreamHost  types.String               `tfsdk:"upstream_host"`
-	HashOn        types.String               `tfsdk:"hash_on"`
-	KeepalivePool *UpstreamKeepAlivePoolType `tfsdk:"keepalive_pool"`
-	TLS           *UpstreamTLSType           `tfsdk:"tls"`
-	Checks        *UpstreamChecksType        `tfsdk:"checks"`
-	Nodes         *[]UpstreamNodeType        `tfsdk:"nodes"`
+// UpstreamResourceModel maps the resource schema data.
+type UpstreamResourceModel struct {
+	ID              types.String               `tfsdk:"id"`
+	Type            types.String               `tfsdk:"type"`
+	ServiceName     types.String               `tfsdk:"service_name"`
+	DiscoveryType   types.String               `tfsdk:"discovery_type"`
+	Timeout         *TimeoutType               `tfsdk:"timeout"`
+	Name            types.String               `tfsdk:"name"`
+	Desc            types.String               `tfsdk:"desc"`
+	PassHost        types.String               `tfsdk:"pass_host"`
+	Scheme          types.String               `tfsdk:"scheme"`
+	Retries         types.Int64                `tfsdk:"retries"`
+	RetryTimeout    types.Int64                `tfsdk:"retry_timeout"`
+	Labels          types.Map                  `tfsdk:"labels"`
+	UpstreamHost    types.String               `tfsdk:"upstream_host"`
+	HashOn          types.String               `tfsdk:"hash_on"`
+	Key             types.String               `tfsdk:"key"`
+	KeepalivePool   *UpstreamKeepAlivePoolType `tfsdk:"keepalive_pool"`
+	TLSClientCertID types.String               `tfsdk:"tls_client_cert_id"`
+	Checks          *UpstreamChecksType        `tfsdk:"checks"`
+	Nodes           *[]UpstreamNodeType        `tfsdk:"nodes"`
 }
 
-var UpstreamSchema = tfsdk.Schema{
-
-	Attributes: map[string]tfsdk.Attribute{
-		"id": {
-			Type:     types.StringType,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.UseStateForUnknown(),
+var UpstreamSchema = schema.Schema{
+	Description: "Manages upstreams.",
+	Attributes: map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Identifier of the upstream.",
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"type": {
-			Type:     types.StringType,
+		"type": schema.StringAttribute{
+			MarkdownDescription: "Load balancing algorithm to be used, and the default value is `roundrobin`.\n" +
+				"Can be one of the following: `roundrobin`, `chash`, `ewma` or `least_conn`",
 			Optional: true,
 			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("roundrobin"),
-			},
-			Validators: []tfsdk.AttributeValidator{
-				validator.StringInSlice("roundrobin", "chash", "ewma", "least_conn"),
+			Default:  stringdefault.StaticString("roundrobin"),
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{"roundrobin", "chash", "ewma", "least_conn"}...),
 			},
 		},
-		"service_name": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ComesWith("discovery_type"),
+		"service_name": schema.StringAttribute{
+			MarkdownDescription: "Service name used for service discovery. Can't be used with `nodes`",
+			Optional:            true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
 			},
 		},
-		"discovery_type": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ComesWith("service_name"),
-			},
+		"discovery_type": schema.StringAttribute{
+			MarkdownDescription: "The type of service discovery. Required, if `service_name` is used",
+			Optional:            true,
 		},
 		"timeout": TimeoutSchemaAttribute,
-		"name": {
-			Type:     types.StringType,
-			Optional: true,
+		"name": schema.StringAttribute{
+			MarkdownDescription: "Identifier for the Upstream.",
+			Optional:            true,
 		},
-		"desc": {
-			Type:     types.StringType,
-			Optional: true,
+		"desc": schema.StringAttribute{
+			MarkdownDescription: "Description of usage scenarios.",
+			Optional:            true,
 		},
-
-		"pass_host": {
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.StringInSlice("pass", "node", "rewrite"),
-			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("pass"),
-			},
-		},
-		"scheme": {
-			Type:     types.StringType,
+		"pass_host": schema.StringAttribute{
+			MarkdownDescription: "Configures the `host` when the request is forwarded to the upstream. " +
+				"Can be one of `pass`, `node` or `rewrite`. Defaults to `pass` if not specified.",
 			Optional: true,
 			Computed: true,
-			// FIXME: Currently can't check when in for_each
-			//Validators: []tfsdk.AttributeValidator{
-			//	validator.StringInSlice("http", "https", "grpc", "grpcs"),
-			//},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("http"),
+			Default:  stringdefault.StaticString("pass"),
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{"pass", "node", "rewrite"}...),
 			},
 		},
-		"retries": {
-			Type:     types.NumberType,
-			Optional: true,
-		},
-		"retry_timeout": {
-			Type:     types.NumberType,
-			Optional: true,
-		},
-		"upstream_host": {
-			Type:     types.StringType,
-			Optional: true,
-		},
-		"hash_on": {
-			Type:     types.StringType,
+		"scheme": schema.StringAttribute{
+			MarkdownDescription: "The scheme used when communicating with the Upstream. " +
+				"For an L7 proxy, this value can be one of `http`, `https`, `grpc`, `grpcs`. " +
+				"For an L4 proxy, this value could be one of `tcp`, `udp`, `tls`. Defaults to `http`.",
 			Optional: true,
 			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("vars"),
+			Default:  stringdefault.StaticString("http"),
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{"http", "https", "grpc", "grpcs", "tcp", "udp", "tls"}...),
 			},
 		},
-		"labels": {
-			Type:     types.MapType{ElemType: types.StringType},
+		"retries": schema.Int64Attribute{
+			MarkdownDescription: "Sets the number of retries while passing the request to Upstream using the underlying Nginx mechanism. " +
+				"Setting this to `0` disables retry.",
 			Optional: true,
 		},
-
+		"retry_timeout": schema.Int64Attribute{
+			MarkdownDescription: "Timeout to continue with retries. Setting this to `0` disables the retry timeout.",
+			Optional:            true,
+		},
+		"upstream_host": schema.StringAttribute{
+			MarkdownDescription: "Specifies the host of the Upstream request. This is only valid if the `pass_host` is set to `rewrite`.",
+			Optional:            true,
+		},
+		"hash_on": schema.StringAttribute{
+			MarkdownDescription: "Only valid if the type is chash. Supports Nginx variables (vars), custom headers (header), cookie and consumer. " +
+				"Defaults to vars.",
+			Optional: true,
+			Computed: true,
+			Default:  stringdefault.StaticString("vars"),
+		},
+		"key": schema.StringAttribute{
+			MarkdownDescription: "Nginx var",
+			Optional:            true,
+		},
+		"labels": schema.MapAttribute{
+			MarkdownDescription: "Attributes of the Upstream specified as `key-value` pairs.",
+			Optional:            true,
+			ElementType:         types.StringType,
+		},
 		"keepalive_pool": UpstreamKeepAlivePoolSchemaAttribute,
-		"tls":            UpstreamTLSSchemaAttribute,
-		"checks":         UpstreamChecksSchemaAttribute,
-		"nodes":          UpstreamNodesSchemaAttribute,
+		"tls_client_cert_id": schema.StringAttribute{
+			MarkdownDescription: "Set the referenced SSL id.",
+			Optional:            true,
+		},
+		"checks": UpstreamChecksSchemaAttribute,
+		"nodes":  UpstreamNodesSchemaAttribute,
 	},
 }
 
-var UpstreamSchemaSAttribute = tfsdk.Attribute{
-	Optional:   true,
-	Attributes: tfsdk.SingleNestedAttributes(UpstreamSchema.Attributes),
-	Validators: []tfsdk.AttributeValidator{
-		validator.OneOf("nodes", "discovery_type"),
-	},
+func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamResourceModel) (apiDataModel api_client.Upstream, labelsDiag diag.Diagnostics) {
+	apiDataModel.Type = terraformDataModel.Type.ValueStringPointer()
+	apiDataModel.ServiceName = terraformDataModel.ServiceName.ValueStringPointer()
+	apiDataModel.DiscoveryType = terraformDataModel.DiscoveryType.ValueStringPointer()
+	apiDataModel.Name = terraformDataModel.Name.ValueStringPointer()
+	apiDataModel.Desc = terraformDataModel.Desc.ValueStringPointer()
+	apiDataModel.PassHost = terraformDataModel.PassHost.ValueStringPointer()
+	apiDataModel.Scheme = terraformDataModel.Scheme.ValueStringPointer()
+	apiDataModel.Retries = terraformDataModel.Retries.ValueInt64Pointer()
+	apiDataModel.RetryTimeout = terraformDataModel.RetryTimeout.ValueInt64Pointer()
+	apiDataModel.UpstreamHost = terraformDataModel.UpstreamHost.ValueStringPointer()
+	apiDataModel.HashOn = terraformDataModel.HashOn.ValueStringPointer()
+	apiDataModel.Key = terraformDataModel.Key.ValueStringPointer()
+	apiDataModel.TLSClientCertID = terraformDataModel.TLSClientCertID.ValueStringPointer()
+
+	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
+
+	apiDataModel.Timeout = TimeoutFromTerraformToAPI(terraformDataModel.Timeout)
+	apiDataModel.KeepalivePool = UpstreamKeepAlivePoolFromTerraformToAPI(terraformDataModel.KeepalivePool)
+	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
+	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
+
+	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
+		"Type":            apiDataModel.Type,
+		"ServiceName":     apiDataModel.ServiceName,
+		"DiscoveryType":   apiDataModel.DiscoveryType,
+		"Name":            apiDataModel.Name,
+		"Desc":            apiDataModel.Desc,
+		"PassHost":        apiDataModel.PassHost,
+		"Scheme":          apiDataModel.Scheme,
+		"Retries":         apiDataModel.Retries,
+		"RetryTimeout":    apiDataModel.RetryTimeout,
+		"UpstreamHost":    apiDataModel.UpstreamHost,
+		"HashOn":          apiDataModel.HashOn,
+		"Key":             apiDataModel.Key,
+		"TLSClientCertID": apiDataModel.TLSClientCertID,
+		"Labels":          apiDataModel.Labels,
+		"Timeout":         apiDataModel.Timeout,
+		"KeepalivePool":   apiDataModel.KeepalivePool,
+		"Checks":          apiDataModel.Checks,
+		"Nodes":           apiDataModel.Nodes,
+	})
+
+	return apiDataModel, labelsDiag
 }
 
-func UpstreamTypeMapToState(data map[string]interface{}, needId bool) (*UpstreamType, error) {
-	v := data["upstream"]
-	if v == nil {
-		return nil, nil
-	}
+func UpstreamFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Upstream) (terraformDataModel UpstreamResourceModel, labelsDiag diag.Diagnostics) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Type = types.StringPointerValue(apiDataModel.Type)
+	terraformDataModel.ServiceName = types.StringPointerValue(apiDataModel.ServiceName)
+	terraformDataModel.DiscoveryType = types.StringPointerValue(apiDataModel.DiscoveryType)
+	terraformDataModel.Name = types.StringPointerValue(apiDataModel.Name)
+	terraformDataModel.Desc = types.StringPointerValue(apiDataModel.Desc)
+	terraformDataModel.PassHost = types.StringPointerValue(apiDataModel.PassHost)
+	terraformDataModel.Scheme = types.StringPointerValue(apiDataModel.Scheme)
+	terraformDataModel.Retries = types.Int64PointerValue(apiDataModel.Retries)
+	terraformDataModel.RetryTimeout = types.Int64PointerValue(apiDataModel.RetryTimeout)
+	terraformDataModel.UpstreamHost = types.StringPointerValue(apiDataModel.UpstreamHost)
+	terraformDataModel.HashOn = types.StringPointerValue(apiDataModel.HashOn)
+	terraformDataModel.Key = types.StringPointerValue(apiDataModel.Key)
+	terraformDataModel.TLSClientCertID = types.StringPointerValue(apiDataModel.TLSClientCertID)
 
-	jsonMap := v.(map[string]interface{})
+	terraformDataModel.Labels, labelsDiag = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-	newState := UpstreamType{}
+	terraformDataModel.Timeout = TimeoutFromAPIToTerraform(apiDataModel.Timeout)
+	terraformDataModel.KeepalivePool = UpstreamKeepAlivePoolFromAPIToTerraform(apiDataModel.KeepalivePool)
+	terraformDataModel.Checks = UpstreamChecksFromApiToTerraform(ctx, apiDataModel.Checks)
+	terraformDataModel.Nodes = UpstreamNodesFromApiToTerraform(ctx, apiDataModel.Nodes)
 
-	if needId {
-		utils.MapValueToStringTypeValue(jsonMap, "id", &newState.ID)
-	}
-	utils.MapValueToStringTypeValue(jsonMap, "type", &newState.Type)
-	utils.MapValueToStringTypeValue(jsonMap, "service_name", &newState.ServiceName)
-	utils.MapValueToStringTypeValue(jsonMap, "discovery_type", &newState.DiscoveryType)
-	utils.MapValueToStringTypeValue(jsonMap, "name", &newState.Name)
-	utils.MapValueToStringTypeValue(jsonMap, "desc", &newState.Desc)
-	utils.MapValueToStringTypeValue(jsonMap, "pass_host", &newState.PassHost)
-	utils.MapValueToStringTypeValue(jsonMap, "scheme", &newState.Scheme)
-	utils.MapValueToStringTypeValue(jsonMap, "upstream_host", &newState.UpstreamHost)
-	utils.MapValueToStringTypeValue(jsonMap, "hash_on", &newState.HashOn)
-	utils.MapValueToNumberTypeValue(jsonMap, "retries", &newState.Retries)
-	utils.MapValueToNumberTypeValue(jsonMap, "retry_timeout", &newState.RetryTimeout)
-	utils.MapValueToMapTypeValue(jsonMap, "labels", &newState.Labels)
-
-	newState.Timeout = TimeoutMapToState(jsonMap)
-	newState.KeepalivePool = UpstreamKeepAlivePoolMapToState(jsonMap)
-	newState.TLS = UpstreamTLSMapToState(jsonMap)
-	newState.Checks = UpstreamChecksMapToState(jsonMap)
-	newState.Nodes = UpstreamNodesMapToState(jsonMap)
-
-	return &newState, nil
-
-}
-
-// UpstreamTypeStateToMap Fucking golang!
-func UpstreamTypeStateToMap(state *UpstreamType) (map[string]interface{}, error) {
-
-	if state == nil {
-		return nil, nil
-	}
-	requestObject := make(map[string]interface{})
-
-	//utils.StringTypeValueToMap(state.ID, requestObject, "id")
-	utils.StringTypeValueToMap(state.Type, requestObject, "type")
-	utils.StringTypeValueToMap(state.Name, requestObject, "name")
-	utils.StringTypeValueToMap(state.ServiceName, requestObject, "service_name")
-	utils.StringTypeValueToMap(state.DiscoveryType, requestObject, "discovery_type")
-	utils.StringTypeValueToMap(state.Desc, requestObject, "desc")
-	utils.StringTypeValueToMap(state.PassHost, requestObject, "pass_host")
-	utils.StringTypeValueToMap(state.Scheme, requestObject, "scheme")
-	utils.NumberTypeValueToMap(state.Retries, requestObject, "retries")
-	utils.NumberTypeValueToMap(state.RetryTimeout, requestObject, "retry_timeout")
-	utils.MapTypeValueToMap(state.Labels, requestObject, "labels")
-	utils.StringTypeValueToMap(state.UpstreamHost, requestObject, "upstream_host")
-	utils.StringTypeValueToMap(state.HashOn, requestObject, "hash_on")
-
-	TimeoutStateToMap(state.Timeout, requestObject)
-	UpstreamKeepAlivePoolStateToMap(state.KeepalivePool, requestObject)
-	UpstreamTLSStateToMap(state.TLS, requestObject)
-	UpstreamChecksStateToMap(state.Checks, requestObject)
-	UpstreamNodesStateToMap(state.Nodes, requestObject)
-
-	return requestObject, nil
+	tflog.Debug(ctx, "Result of the UpstreamFromApiToTerraform", map[string]any{
+		"Type":            terraformDataModel.Type,
+		"ServiceName":     terraformDataModel.ServiceName,
+		"DiscoveryType":   terraformDataModel.DiscoveryType,
+		"Name":            terraformDataModel.Name,
+		"Desc":            terraformDataModel.Desc,
+		"PassHost":        terraformDataModel.PassHost,
+		"Scheme":          terraformDataModel.Scheme,
+		"Retries":         terraformDataModel.Retries,
+		"RetryTimeout":    terraformDataModel.RetryTimeout,
+		"UpstreamHost":    terraformDataModel.UpstreamHost,
+		"HashOn":          terraformDataModel.HashOn,
+		"Key":             terraformDataModel.Key,
+		"TLSClientCertID": terraformDataModel.TLSClientCertID,
+		"Labels":          terraformDataModel.Labels,
+		"Timeout":         terraformDataModel.Timeout,
+		"KeepalivePool":   terraformDataModel.KeepalivePool,
+		"Checks":          terraformDataModel.Checks,
+		"Nodes":           terraformDataModel.Nodes,
+	})
+	return terraformDataModel, labelsDiag
 }

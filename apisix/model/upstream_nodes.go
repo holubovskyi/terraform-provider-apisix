@@ -1,120 +1,73 @@
 package model
 
 import (
-	"math/big"
-	"strconv"
-	"strings"
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamNodeType struct {
 	Host   types.String `tfsdk:"host"`
-	Port   types.Number `tfsdk:"port"`
-	Weight types.Number `tfsdk:"weight"`
+	Port   types.Int64  `tfsdk:"port"`
+	Weight types.Int64  `tfsdk:"weight"`
 }
 
-var UpstreamNodesSchemaAttribute = tfsdk.Attribute{
-	Optional: true,
-	Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-		"host": {
-			Type:     types.StringType,
-			Required: true,
-		},
-		"port": {
-			Type:     types.NumberType,
-			Required: true,
-		},
-		"weight": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(1),
+var UpstreamNodesSchemaAttribute = schema.ListNestedAttribute{
+	MarkdownDescription: "Configures the parameters for the health check.",
+	Optional:            true,
+
+	NestedObject: schema.NestedAttributeObject{
+		Attributes: map[string]schema.Attribute{
+			"host": schema.StringAttribute{
+				Required: true,
+			},
+			"port": schema.Int64Attribute{
+				Required: true,
+			},
+			"weight": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(1),
 			},
 		},
-	}),
-	Validators: []tfsdk.AttributeValidator{
-		validator.ConflictsWith("discovery_type", "service_name"),
 	},
 }
 
-func UpstreamNodesMapToState(data map[string]interface{}) *[]UpstreamNodeType {
-	v := data["nodes"]
-
-	if v == nil {
-		return nil
+func UpstreamNodesFromTerraformToAPI(ctx context.Context, terraformDataModel *[]UpstreamNodeType) (apiDataModel *[]api_client.UpstreamNodeType) {
+	if terraformDataModel == nil {
+		tflog.Debug(ctx, "Can't transform upstream nodes to api model")
+		return
 	}
 
-	var result []UpstreamNodeType
+	var result = []api_client.UpstreamNodeType{}
 
-	switch v.(type) {
-	case []interface{}:
-		for _, v := range v.([]interface{}) {
-			v := v.(map[string]interface{})
-			result = append(result, UpstreamNodeType{
-				Host:   types.String{Value: v["host"].(string)},
-				Port:   types.Number{Value: big.NewFloat(v["port"].(float64))},
-				Weight: types.Number{Value: big.NewFloat(v["weight"].(float64))},
-			})
-		}
-
-	case map[string]interface{}:
-
-		for k, v := range v.(map[string]interface{}) {
-			ss := strings.Split(k, ":")
-			var host string
-			var port int
-
-			if len(ss) == 1 {
-				host = ss[0]
-				port = 80
-			} else if len(ss) == 2 {
-				host = ss[0]
-				// TODO: Fix this - error
-				port, _ = strconv.Atoi(ss[1])
-			} else {
-				// TODO: Fix this
-				panic("Ohhh, upstream node item is bad")
-			}
-
-			result = append(result, UpstreamNodeType{
-				Host:   types.String{Value: host},
-				Port:   types.Number{Value: big.NewFloat(float64(port))},
-				Weight: types.Number{Value: big.NewFloat(v.(float64))},
-			})
-		}
-
-	default:
-		return nil
-
+	for _, v := range *terraformDataModel {
+		result = append(result, api_client.UpstreamNodeType{
+			Host:   v.Host.ValueString(),
+			Port:   v.Port.ValueInt64(),
+			Weight: v.Weight.ValueInt64()})
 	}
-
 	return &result
 }
 
-func UpstreamNodesStateToMap(state *[]UpstreamNodeType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamNodesFromApiToTerraform(ctx context.Context, apiDataModel *[]api_client.UpstreamNodeType) (terraformDataModel *[]UpstreamNodeType) {
+	if apiDataModel == nil {
+		tflog.Debug(ctx, "Can't transform upstream nodes to terraform model")
 		return
 	}
 
-	var result []map[string]interface{}
+	var result = []UpstreamNodeType{}
 
-	for _, v := range *state {
-		item := map[string]interface{}{}
-		utils.StringTypeValueToMap(v.Host, item, "host")
-		utils.NumberTypeValueToMap(v.Port, item, "port")
-		utils.NumberTypeValueToMap(v.Weight, item, "weight")
-		result = append(result, item)
+	for _, v := range *apiDataModel {
+		result = append(result, UpstreamNodeType{
+			Host:   types.StringValue(v.Host),
+			Port:   types.Int64Value(int64(v.Port)),
+			Weight: types.Int64Value(int64(v.Weight)),
+		})
 	}
-
-	if len(result) == 0 {
-		return
-	}
-
-	dMap["nodes"] = result
+	return &result
 }

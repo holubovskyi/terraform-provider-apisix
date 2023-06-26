@@ -1,79 +1,59 @@
 package model
 
 import (
-	"math/big"
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
+	"github.com/holubovskyi/apisix-client-go"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type TimeoutType struct {
-	Connect types.Number `tfsdk:"connect"`
-	Send    types.Number `tfsdk:"send"`
-	Read    types.Number `tfsdk:"read"`
+	Connect types.Int64 `tfsdk:"connect"`
+	Send    types.Int64 `tfsdk:"send"`
+	Read    types.Int64 `tfsdk:"read"`
 }
 
-var TimeoutSchemaAttribute = tfsdk.Attribute{
-	Optional: true,
-	Computed: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"connect": {
+var TimeoutSchemaAttribute = schema.SingleNestedAttribute{
+	MarkdownDescription: "Sets the timeout (in seconds) for connecting to, and sending and receiving messages to and from the Upstream.",
+	Optional:            true,
+	Computed:            false,
+	Attributes: map[string]schema.Attribute{
+		"connect": schema.Int64Attribute{
 			Required: true,
-			Type:     types.NumberType,
 		},
-		"send": {
+		"send": schema.Int64Attribute{
 			Required: true,
-			Type:     types.NumberType,
 		},
-		"read": {
+		"read": schema.Int64Attribute{
 			Required: true,
-			Type:     types.NumberType,
 		},
-	}),
-	PlanModifiers: []tfsdk.AttributePlanModifier{
-		plan_modifier.DefaultObject(
-			map[string]attr.Type{
-				"connect": types.NumberType,
-				"send":    types.NumberType,
-				"read":    types.NumberType,
-			},
-			map[string]attr.Value{
-				"connect": types.Number{Value: big.NewFloat(60)},
-				"send":    types.Number{Value: big.NewFloat(60)},
-				"read":    types.Number{Value: big.NewFloat(60)},
-			},
-		),
 	},
 }
 
-func TimeoutMapToState(data map[string]interface{}) *TimeoutType {
-	v := data["timeout"]
-
-	if v == nil {
-		return nil
-	}
-	value := v.(map[string]interface{})
-	output := TimeoutType{}
-
-	utils.MapValueToNumberTypeValue(value, "connect", &output.Connect)
-	utils.MapValueToNumberTypeValue(value, "send", &output.Send)
-	utils.MapValueToNumberTypeValue(value, "read", &output.Read)
-
-	return &output
-}
-
-func TimeoutStateToMap(state *TimeoutType, dMap map[string]interface{}) {
-	if state == nil {
+func TimeoutFromTerraformToAPI(terraformDataModel *TimeoutType) (apiDataModel *api_client.TimeoutType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
-	utils.NumberTypeValueToMap(state.Connect, output, "connect")
-	utils.NumberTypeValueToMap(state.Send, output, "send")
-	utils.NumberTypeValueToMap(state.Read, output, "read")
+	result := api_client.TimeoutType{
+		Connect: terraformDataModel.Connect.ValueInt64(),
+		Send:    terraformDataModel.Send.ValueInt64(),
+		Read:    terraformDataModel.Read.ValueInt64(),
+	}
 
-	dMap["timeout"] = output
+	return &result
+}
+
+func TimeoutFromAPIToTerraform(apiDataModel *api_client.TimeoutType) (terraformDataModel *TimeoutType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := TimeoutType{
+		Connect: types.Int64Value(int64(apiDataModel.Connect)),
+		Send:    types.Int64Value(int64(apiDataModel.Send)),
+		Read:    types.Int64Value(int64(apiDataModel.Read)),
+	}
+
+	return &result
 }

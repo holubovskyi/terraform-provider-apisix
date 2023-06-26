@@ -1,89 +1,84 @@
 package model
 
 import (
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksActiveHealthyType struct {
-	Interval     types.Number `tfsdk:"interval"`
-	HTTPStatuses types.List   `tfsdk:"http_statuses"`
-	Successes    types.Number `tfsdk:"successes"`
+	Interval     types.Int64 `tfsdk:"interval"`
+	HTTPStatuses types.List  `tfsdk:"http_statuses"`
+	Successes    types.Int64 `tfsdk:"successes"`
 }
 
-var UpstreamChecksActiveHealthySchemaAttribute = tfsdk.Attribute{
+var UpstreamChecksActiveHealthySchemaAttribute = schema.SingleNestedAttribute{
 	Optional: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"interval": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
+	Attributes: map[string]schema.Attribute{
+		"interval": schema.Int64Attribute{
+			MarkdownDescription: "Active check (healthy node) check interval (unit: second)",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(1),
+			Validators: []validator.Int64{
+				int64validator.AtLeast(1),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(1),
-			},
-			Description: "Active check (healthy node) check interval (unit: second)",
 		},
-		"http_statuses": {
-			Type:     types.ListType{ElemType: types.NumberType},
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultListOfNumbers(200, 302),
+		"http_statuses": schema.ListAttribute{
+			MarkdownDescription: "Active check (healthy node) HTTP or HTTPS type check, the HTTP status code of the healthy node.",
+			ElementType:         types.Int64Type,
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.List{
+				listvalidator.ValueInt64sAre(int64validator.Between(200, 599)),
 			},
-			Description: "Active check (healthy node) HTTP or HTTPS type check, the HTTP status code of the healthy node",
+			Default: listdefault.StaticValue(types.ListValueMust(types.Int64Type, []attr.Value{types.Int64Value(200), types.Int64Value(302)})),
 		},
-
-		"successes": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
-				validator.NumberLessOrEqualThan(254),
+		"successes": schema.Int64Attribute{
+			MarkdownDescription: "Active check (healthy node) determine the number of times a node is healthy.",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 254),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(2),
-			},
-			Description: "Active check (healthy node) check interval (unit: second)",
+			Default: int64default.StaticInt64(2),
 		},
-	}),
+	},
 }
 
-func UpstreamChecksActiveHealthyMapToState(data map[string]interface{}) *UpstreamChecksActiveHealthyType {
-	v := data["healthy"]
-	if v == nil {
-		return nil
-	}
-
-	value := v.(map[string]interface{})
-	output := UpstreamChecksActiveHealthyType{}
-
-	utils.MapValueToNumberTypeValue(value, "interval", &output.Interval)
-	utils.MapValueToNumberTypeValue(value, "successes", &output.Successes)
-	utils.MapValueToListTypeValue(value, "http_statuses", &output.HTTPStatuses)
-	utils.MapValueToNumberTypeValue(value, "interval", &output.Interval)
-
-	return &output
-}
-
-func UpstreamChecksActiveHealthyStateToMap(state *UpstreamChecksActiveHealthyType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamChecksActiveHealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveHealthyType) (apiDataModel *api_client.UpstreamChecksActiveHealthyType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
+	result := api_client.UpstreamChecksActiveHealthyType{
+		Interval:  terraformDataModel.Interval.ValueInt64(),
+		Successes: terraformDataModel.Successes.ValueInt64(),
+	}
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
 
-	utils.NumberTypeValueToMap(state.Interval, output, "interval")
-	utils.ListTypeValueToMap(state.HTTPStatuses, output, "http_statuses")
-	utils.NumberTypeValueToMap(state.Successes, output, "successes")
+	return &result
 
-	dMap["healthy"] = output
+}
 
+func UpstreamChecksActiveHealthyFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksActiveHealthyType) (terraformDataModel *UpstreamChecksActiveHealthyType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksActiveHealthyType{
+		Interval:  types.Int64Value(int64(apiDataModel.Interval)),
+		Successes: types.Int64Value(int64(apiDataModel.Successes)),
+	}
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.Int64Type, apiDataModel.HTTPStatuses)
+
+	return &result
 }

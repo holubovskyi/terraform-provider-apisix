@@ -1,7 +1,10 @@
 package model
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	api_client "github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksPassiveType struct {
@@ -9,38 +12,37 @@ type UpstreamChecksPassiveType struct {
 	Unhealthy *UpstreamChecksPassiveUnhealthyType `tfsdk:"unhealthy"`
 }
 
-var UpstreamChecksPassiveSchemaAttribute = tfsdk.Attribute{
-	Optional: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+var UpstreamChecksPassiveSchemaAttribute = schema.SingleNestedAttribute{
+	MarkdownDescription: "Passive health check refers to judging whether the corresponding upstream node is healthy by judging the response status of the request forwarded from APISIX to the upstream node.",
+	Optional:            true,
+	Attributes: map[string]schema.Attribute{
 		"healthy":   UpstreamChecksPassiveHealthySchemaAttribute,
 		"unhealthy": UpstreamChecksPassiveUnhealthySchemaAttribute,
-	}),
+	},
 }
 
-func UpstreamChecksPassiveMapToState(data map[string]interface{}) *UpstreamChecksPassiveType {
-	v := data["passive"]
-	if v == nil {
-		return nil
-	}
-
-	output := UpstreamChecksPassiveType{}
-	value := v.(map[string]interface{})
-
-	output.Healthy = UpstreamChecksPassiveHealthyMapToState(value)
-	output.Unhealthy = UpstreamChecksPassiveUnhealthyMapToState(value)
-
-	return &output
-}
-
-func UpstreamChecksPassiveStateToMap(state *UpstreamChecksPassiveType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamChecksPassiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksPassiveType) (apiDataModel *api_client.UpstreamChecksPassiveType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
+	result := api_client.UpstreamChecksPassiveType{
+		Healthy:   UpstreamChecksPassiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
+		Unhealthy: UpstreamChecksPassiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
+	}
 
-	UpstreamChecksPassiveHealthyStateToMap(state.Healthy, output)
-	UpstreamChecksPassiveUnhealthyStateToMap(state.Unhealthy, output)
+	return &result
+}
 
-	dMap["passive"] = output
+func UpstreamChecksPassiveFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksPassiveType) (terraformDataModel *UpstreamChecksPassiveType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksPassiveType{
+		Healthy:   UpstreamChecksPassiveHealthyFromApiToTerraform(ctx, apiDataModel.Healthy),
+		Unhealthy: UpstreamChecksPassiveUnhealthyFromApiToTerraform(ctx, apiDataModel.Unhealthy),
+	}
+
+	return &result
 }

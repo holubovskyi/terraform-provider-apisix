@@ -24,6 +24,14 @@ apisix:
     ip: "0.0.0.0"
     port: 9092
 
+  stream_proxy: # TCP/UDP proxy
+    tcp: # TCP proxy address list
+      - 9100
+      - "127.0.0.1:9101"
+    udp: # UDP proxy address list
+      - 9200
+      - "127.0.0.1:9211"
+
 deployment:
   admin:
     allow_admin:               # https://nginx.org/en/docs/http/ngx_http_access_module.html#allow

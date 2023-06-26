@@ -1,120 +1,117 @@
 package model
 
 import (
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	api_client "github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksActiveUnhealthyType struct {
-	Interval     types.Number `tfsdk:"interval"`
-	HTTPStatuses types.List   `tfsdk:"http_statuses"`
-	TCPFailures  types.Number `tfsdk:"tcp_failures"`
-	Timeouts     types.Number `tfsdk:"timeouts"`
-	HTTPFailures types.Number `tfsdk:"http_failures"`
+	Interval     types.Int64 `tfsdk:"interval"`
+	HTTPStatuses types.List  `tfsdk:"http_statuses"`
+	TCPFailures  types.Int64 `tfsdk:"tcp_failures"`
+	Timeouts     types.Int64 `tfsdk:"timeouts"`
+	HTTPFailures types.Int64 `tfsdk:"http_failures"`
 }
 
-var UpstreamChecksActiveUnhealthySchemaAttribute = tfsdk.Attribute{
+var UpstreamChecksActiveUnhealthySchemaAttribute = schema.SingleNestedAttribute{
 	Optional: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"interval": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
+	Attributes: map[string]schema.Attribute{
+		"interval": schema.Int64Attribute{
+			MarkdownDescription: "Active check (unhealthy node) check interval (unit: second)",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(1),
+			Validators: []validator.Int64{
+				int64validator.AtLeast(1),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(1),
-			},
-			Description: "Active check (unhealthy node) check interval (unit: second)",
 		},
-		"http_statuses": {
-			Type:     types.ListType{ElemType: types.NumberType},
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultListOfNumbers(404, 429, 500, 501, 503, 504, 505),
+		"http_statuses": schema.ListAttribute{
+			MarkdownDescription: "Active check (unhealthy node) HTTP or HTTPS type check, the HTTP status code of the non-healthy node.",
+			ElementType:         types.Int64Type,
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.List{
+				listvalidator.ValueInt64sAre(int64validator.Between(200, 599)),
 			},
-			Description: "Active check (unhealthy node) HTTP or HTTPS type check, the HTTP status code of the non-healthy node",
+			Default: listdefault.StaticValue(types.ListValueMust(types.Int64Type, []attr.Value{
+				types.Int64Value(429),
+				types.Int64Value(404),
+				types.Int64Value(500),
+				types.Int64Value(501),
+				types.Int64Value(502),
+				types.Int64Value(503),
+				types.Int64Value(504),
+				types.Int64Value(505),
+			})),
 		},
-
-		"http_failures": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
-				validator.NumberLessOrEqualThan(254),
+		"http_failures": schema.Int64Attribute{
+			MarkdownDescription: "Active check (unhealthy node) HTTP or HTTPS type check, determine the number of times that the node is not healthy.",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 254),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(5),
-			},
-			Description: "Active check (unhealthy node) HTTP or HTTPS type check, determine the number of times that the node is not healthy",
+			Default: int64default.StaticInt64(5),
 		},
-
-		"tcp_failures": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
-				validator.NumberLessOrEqualThan(254),
+		"tcp_failures": schema.Int64Attribute{
+			MarkdownDescription: "Active check (unhealthy node) TCP type check, determine the number of times that the node is not healthy.",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 254),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(2),
-			},
-			Description: "Active check (unhealthy node) TCP type check, determine the number of times that the node is not healthy",
+			Default: int64default.StaticInt64(2),
 		},
-
-		"timeouts": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
-				validator.NumberLessOrEqualThan(254),
+		"timeouts": schema.Int64Attribute{
+			MarkdownDescription: "Active check (unhealthy node) to determine the number of timeouts for unhealthy nodes.",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 254),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(3),
-			},
-			Description: "Active check (unhealthy node) to determine the number of timeouts for unhealthy nodes",
+			Default: int64default.StaticInt64(3),
 		},
-	}),
+	},
 }
 
-func UpstreamChecksActiveUnhealthyMapToState(data map[string]interface{}) *UpstreamChecksActiveUnhealthyType {
-	v := data["unhealthy"]
-	if v == nil {
-		return nil
-	}
-
-	value := v.(map[string]interface{})
-	output := UpstreamChecksActiveUnhealthyType{}
-
-	utils.MapValueToNumberTypeValue(value, "interval", &output.Interval)
-	utils.MapValueToNumberTypeValue(value, "tcp_failures", &output.TCPFailures)
-	utils.MapValueToNumberTypeValue(value, "timeouts", &output.Timeouts)
-	utils.MapValueToNumberTypeValue(value, "http_failures", &output.HTTPFailures)
-	utils.MapValueToListTypeValue(value, "http_statuses", &output.HTTPStatuses)
-
-	return &output
-}
-
-func UpstreamChecksActiveUnhealthyStateToMap(state *UpstreamChecksActiveUnhealthyType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveUnhealthyType) (apiDataModel *api_client.UpstreamChecksActiveUnhealthyType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
-	utils.NumberTypeValueToMap(state.Interval, output, "interval")
-	utils.NumberTypeValueToMap(state.TCPFailures, output, "tcp_failures")
-	utils.NumberTypeValueToMap(state.Timeouts, output, "timeouts")
-	utils.NumberTypeValueToMap(state.HTTPFailures, output, "http_failures")
-	utils.ListTypeValueToMap(state.HTTPStatuses, output, "http_statuses")
+	result := api_client.UpstreamChecksActiveUnhealthyType{
+		Interval:     terraformDataModel.Interval.ValueInt64(),
+		TCPFailures:  terraformDataModel.TCPFailures.ValueInt64(),
+		Timeouts:     terraformDataModel.Timeouts.ValueInt64(),
+		HTTPFailures: terraformDataModel.HTTPFailures.ValueInt64(),
+	}
 
-	dMap["unhealthy"] = output
+	_ = terraformDataModel.HTTPStatuses.ElementsAs(ctx, &result.HTTPStatuses, false)
+
+	return &result
+}
+
+func UpstreamChecksActiveUnhealthyFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksActiveUnhealthyType) (terraformDataModel *UpstreamChecksActiveUnhealthyType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksActiveUnhealthyType{
+		Interval:     types.Int64Value(int64(apiDataModel.Interval)),
+		TCPFailures:  types.Int64Value(int64(apiDataModel.TCPFailures)),
+		Timeouts:     types.Int64Value(int64(apiDataModel.Timeouts)),
+		HTTPFailures: types.Int64Value(int64(apiDataModel.HTTPFailures)),
+	}
+	result.HTTPStatuses, _ = types.ListValueFrom(ctx, types.Int64Type, apiDataModel.HTTPStatuses)
+
+	return &result
 }

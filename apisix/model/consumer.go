@@ -1,102 +1,92 @@
 package model
 
 import (
-	"reflect"
-	"terraform-provider-apisix/apisix/utils"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type ConsumerType struct {
-	Username    types.String         `tfsdk:"username"`
-	Description types.String         `tfsdk:"desc"`
-	Labels      types.Map            `tfsdk:"labels"`
-	Plugins     *ConsumerPluginsType `tfsdk:"plugins"`
+// ConsumerResourceModel maps the resource schema data.
+type ConsumerResourceModel struct {
+	Username    types.String `tfsdk:"username"`
+	Description types.String `tfsdk:"desc"`
+	Labels      types.Map    `tfsdk:"labels"`
+	Plugins     types.String `tfsdk:"plugins"`
+	GroupId     types.String `tfsdk:"group_id"`
 }
 
-var ConsumerSchema = tfsdk.Schema{
-	Attributes: map[string]tfsdk.Attribute{
-		"username": {
-			Type:        types.StringType,
+var ConsumerSchema = schema.Schema{
+	Description: "Manages Consumers",
+	Attributes: map[string]schema.Attribute{
+		"username": schema.StringAttribute{
+			Description: "Name and Identifier of the Consumer.",
 			Required:    true,
-			Description: "Consumer name",
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
 		},
-		"desc": {
-			Type:        types.StringType,
+		"desc": schema.StringAttribute{
+			Description: "Description of usage scenarios.",
 			Optional:    true,
-			Description: "Identifies route names, usage scenarios, and more.",
 		},
-		"labels": {
+		"labels": schema.MapAttribute{
+			Description: "Attributes of the Consumer specified as key-value pairs.",
+			ElementType: types.StringType,
 			Optional:    true,
-			Type:        types.MapType{ElemType: types.StringType},
-			Description: "Key/value pairs to specify attributes",
 		},
-
-		"plugins": {
-			Optional:   true,
-			Attributes: ConsumerPluginsSchemaAttribute,
+		"plugins": schema.StringAttribute{
+			Description: "Plugins that are executed during the request/response cycle.",
+			Optional:    true,
+		},
+		"group_id": schema.StringAttribute{
+			Description: "Group of the Consumer.",
+			Optional:    true,
 		},
 	},
 }
 
-func ConsumerTypeMapToState(jsonMap map[string]interface{}) (*ConsumerType, error) {
-	newState := ConsumerType{}
+func ConsumerFromTerraformToApi(ctx context.Context, terraformDataModel *ConsumerResourceModel) (apiDataModel api_client.Consumer) {
+	apiDataModel.Username = terraformDataModel.Username.ValueStringPointer()
+	apiDataModel.Description = terraformDataModel.Description.ValueStringPointer()
+	apiDataModel.GroupId = terraformDataModel.GroupId.ValueStringPointer()
 
-	utils.MapValueToStringTypeValue(jsonMap, "username", &newState.Username)
-	utils.MapValueToStringTypeValue(jsonMap, "desc", &newState.Description)
-	utils.MapValueToMapTypeValue(jsonMap, "labels", &newState.Labels)
+	_ = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, true)
 
-	if v := jsonMap["plugins"]; v != nil {
-		value := v.(map[string]interface{})
-		pluginsType := ConsumerPluginsType{}
+	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
 
-		e := reflect.ValueOf(&pluginsType).Elem()
-		for i := 0; i < e.NumField(); i++ {
-			switch e.Field(i).Interface().(type) {
-			case ConsumerPluginCommonInterface:
-				reflect.New(e.Type().Field(i).Type.Elem()).Interface().(ConsumerPluginCommonInterface).MapToState(value, &pluginsType)
-			default:
+	tflog.Info(ctx, "Result of ConsumerFromTerraformToApi", map[string]interface{ any }{
+		"Username":    apiDataModel.Username,
+		"Description": apiDataModel.Description,
+		"Labels":      apiDataModel.Labels,
+		"GroupId":     apiDataModel.GroupId,
+		"Plugins":     apiDataModel.Plugins,
+	})
 
-			}
-		}
-		newState.Plugins = &pluginsType
-	} else {
-		newState.Plugins = nil
-	}
-	return &newState, nil
+	return apiDataModel
 }
 
-func ConsumerTypeStateToMap(state ConsumerType) (map[string]interface{}, error) {
+func ConsumerFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Consumer) (terraformDataModel ConsumerResourceModel) {
+	terraformDataModel.Username = types.StringPointerValue(apiDataModel.Username)
+	terraformDataModel.Description = types.StringPointerValue(apiDataModel.Description)
+	terraformDataModel.GroupId = types.StringPointerValue(apiDataModel.GroupId)
 
-	output := make(map[string]interface{})
+	terraformDataModel.Labels, _ = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-	utils.StringTypeValueToMap(state.Username, output, "username")
-	utils.StringTypeValueToMap(state.Description, output, "desc")
-	utils.MapTypeValueToMap(state.Labels, output, "labels")
+	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
 
-	plugins := make(map[string]interface{})
-	if state.Plugins != nil {
-		planPlugins := state.Plugins
+	tflog.Info(ctx, "Result of ConsumerFromApiToTerraform", map[string]interface{ any }{
+		"Username":    terraformDataModel.Username,
+		"Description": terraformDataModel.Description,
+		"Labels":      terraformDataModel.Labels,
+		"GroupId":     terraformDataModel.GroupId,
+		"Plugins":     terraformDataModel.Plugins,
+	})
 
-		e := reflect.ValueOf(planPlugins).Elem()
-		for i := 0; i < e.NumField(); i++ {
-
-			if !e.Field(i).IsNil() {
-				switch e.Field(i).Interface().(type) {
-				case ConsumerPluginCommonInterface:
-					e.Field(i).Interface().(ConsumerPluginCommonInterface).StateToMap(plugins)
-				default:
-
-				}
-
-			}
-		}
-
-		//PluginCustomTypeStateToMap(plugins, plan, state, isUpdate)
-
-		output["plugins"] = plugins
-	}
-
-	return output, nil
+	return terraformDataModel
 }

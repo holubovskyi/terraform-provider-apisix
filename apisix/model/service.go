@@ -1,166 +1,120 @@
 package model
 
 import (
-	"reflect"
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type ServiceType struct {
-	ID              types.String  `tfsdk:"id"`
-	Description     types.String  `tfsdk:"desc"`
-	EnableWebsocket types.Bool    `tfsdk:"enable_websocket"`
-	Hosts           types.List    `tfsdk:"hosts"`
-	Labels          types.Map     `tfsdk:"labels"`
-	Name            types.String  `tfsdk:"name"`
-	Plugins         *PluginsType  `tfsdk:"plugins"`
-	Upstream        *UpstreamType `tfsdk:"upstream"`
-	UpstreamId      types.String  `tfsdk:"upstream_id"`
+// ServiceResourceModel maps the resource schema data.
+type ServiceResourceModel struct {
+	ID              types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	Description     types.String `tfsdk:"desc"`
+	EnableWebsocket types.Bool   `tfsdk:"enable_websocket"`
+	Hosts           types.List   `tfsdk:"hosts"`
+	Labels          types.Map    `tfsdk:"labels"`
+	Plugins         types.String `tfsdk:"plugins"`
+	UpstreamId      types.String `tfsdk:"upstream_id"`
 }
 
-var ServiceSchema = tfsdk.Schema{
-	Attributes: map[string]tfsdk.Attribute{
-		"id": {
-			Type:     types.StringType,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.UseStateForUnknown(),
+var ServiceSchema = schema.Schema{
+	Description: "Manages services",
+	Attributes: map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Identifier of the service.",
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"desc": {
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("Managed by Terraform"),
-			},
+		"name": schema.StringAttribute{
+			Description: "Identifier for the service.",
+			Optional:    true,
 		},
-		"enable_websocket": {
-			Type:     types.BoolType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultBool(false),
-			},
+		"desc": schema.StringAttribute{
+			Description: "Description of usage scenarios.",
+			Optional:    true,
 		},
-		"hosts": {
-			Type:     types.ListType{ElemType: types.StringType},
-			Optional: true,
+		"enable_websocket": schema.BoolAttribute{
+			MarkdownDescription: "Enables a websocket. Set to `false` by default.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
 		},
-		"labels": {
-			Optional: true,
-			Type:     types.MapType{ElemType: types.StringType},
+		"hosts": schema.ListAttribute{
+			MarkdownDescription: "Matches with any one of the multiple `hosts` specified in the form of a non-empty list.",
+			ElementType:         types.StringType,
+			Optional:            true,
 		},
-		"name": {
-			Type:     types.StringType,
-			Required: true,
+		"labels": schema.MapAttribute{
+			Description: "Attributes of the Service specified as key-value pairs.",
+			ElementType: types.StringType,
+			Optional:    true,
 		},
-		"plugins": {
-			Optional:   true,
-			Attributes: PluginsSchemaAttribute,
+		"plugins": schema.StringAttribute{
+			Description: "Plugins that are executed during the request/response cycle.",
+			Optional:    true,
 		},
-		"upstream": UpstreamSchemaSAttribute,
-		"upstream_id": {
-			Type:     types.StringType,
-			Optional: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.ConflictsWith("upstream"),
-			},
+		"upstream_id": schema.StringAttribute{
+			Description: "Id of the Upstream service.",
+			Optional:    true,
 		},
 	},
 }
 
-func ServiceTypeMapToState(jsonMap map[string]interface{}) (*ServiceType, error) {
-	newState := ServiceType{}
+func ServiceFromTerraformToApi(ctx context.Context, terraformDataModel *ServiceResourceModel) (apiDataModel api_client.Service) {
+	apiDataModel.Name = terraformDataModel.Name.ValueStringPointer()
+	apiDataModel.Description = terraformDataModel.Description.ValueStringPointer()
+	apiDataModel.EnableWebsocket = terraformDataModel.EnableWebsocket.ValueBoolPointer()
+	apiDataModel.UpstreamId = terraformDataModel.UpstreamId.ValueStringPointer()
 
-	utils.MapValueToStringTypeValue(jsonMap, "id", &newState.ID)
-	utils.MapValueToStringTypeValue(jsonMap, "desc", &newState.Description)
-	utils.MapValueToBoolTypeValue(jsonMap, "enable_websocket", &newState.EnableWebsocket)
-	utils.MapValueToListTypeValue(jsonMap, "hosts", &newState.Hosts)
-	utils.MapValueToMapTypeValue(jsonMap, "labels", &newState.Labels)
-	utils.MapValueToStringTypeValue(jsonMap, "name", &newState.Name)
-	utils.MapValueToStringTypeValue(jsonMap, "upstream_id", &newState.UpstreamId)
+	_ = terraformDataModel.Hosts.ElementsAs(ctx, &apiDataModel.Hosts, true)
+	_ = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, true)
 
-	upstream, err := UpstreamTypeMapToState(jsonMap, false)
-	if err != nil {
-		return nil, err
-	}
-	newState.Upstream = upstream
+	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
 
-	if v := jsonMap["plugins"]; v != nil {
-		value := v.(map[string]interface{})
-		pluginsType := PluginsType{}
+	tflog.Info(ctx, "Result of ServiceFromTerraformToApi", map[string]interface{ any }{
+		"Name":            apiDataModel.Name,
+		"Description":     apiDataModel.Description,
+		"EnableWebsocket": apiDataModel.EnableWebsocket,
+		"UpstreamId":      apiDataModel.UpstreamId,
+		"Hosts":           apiDataModel.Hosts,
+		"Labels":          apiDataModel.Labels,
+		"Plugins":         apiDataModel.Plugins,
+	})
 
-		e := reflect.ValueOf(&pluginsType).Elem()
-		for i := 0; i < e.NumField(); i++ {
-			switch e.Field(i).Interface().(type) {
-			case PluginCommonInterface:
-				reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).MapToState(value, &pluginsType)
-			default:
-
-			}
-		}
-
-		//PluginCustomTypeMapToState(value, &pluginsType, plan, state)
-		newState.Plugins = &pluginsType
-	} else {
-		newState.Plugins = nil
-	}
-	return &newState, nil
+	return apiDataModel
 }
 
-func ServiceTypeStateToMap(state ServiceType) (map[string]interface{}, error) {
+func ServiceFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Service) (terraformDataModel ServiceResourceModel) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Name = types.StringPointerValue(apiDataModel.Name)
+	terraformDataModel.Description = types.StringPointerValue(apiDataModel.Description)
+	terraformDataModel.EnableWebsocket = types.BoolPointerValue(apiDataModel.EnableWebsocket)
+	terraformDataModel.UpstreamId = types.StringPointerValue(apiDataModel.UpstreamId)
 
-	output := make(map[string]interface{})
-	utils.StringTypeValueToMap(state.Name, output, "name")
-	utils.StringTypeValueToMap(state.Description, output, "desc")
-	utils.ListTypeValueToMap(state.Hosts, output, "hosts")
-	utils.BoolTypeValueToMap(state.EnableWebsocket, output, "enable_websocket")
-	utils.StringTypeValueToMap(state.UpstreamId, output, "upstream_id")
-	utils.MapTypeValueToMap(state.Labels, output, "labels")
-	plugins := make(map[string]interface{})
-	if state.Plugins != nil {
-		statePlugins := state.Plugins
+	terraformDataModel.Hosts, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.Hosts)
+	terraformDataModel.Labels, _ = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-		e := reflect.ValueOf(statePlugins).Elem()
-		for i := 0; i < e.NumField(); i++ {
+	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
 
-			if !e.Field(i).IsNil() {
-				switch e.Field(i).Interface().(type) {
-				case PluginCommonInterface:
-					e.Field(i).Interface().(PluginCommonInterface).StateToMap(plugins)
-				default:
+	tflog.Info(ctx, "Result of ServiceFromApiToTerraform", map[string]interface{ any }{
+		"Name":            terraformDataModel.Name,
+		"Description":     terraformDataModel.Description,
+		"EnableWebsocket": terraformDataModel.EnableWebsocket,
+		"UpstreamId":      terraformDataModel.UpstreamId,
+		"Hosts":           terraformDataModel.Hosts,
+		"Labels":          terraformDataModel.Labels,
+		"Plugins":         terraformDataModel.Plugins,
+	})
 
-				}
-
-			}
-			//else if isUpdate {
-			//	switch e.Field(i).Interface().(type) {
-			//	case PluginCommonInterface:
-			//		plugins[reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).Name()] = nil
-			//	default:
-			//	}
-			//}
-		}
-
-		//PluginCustomTypeStateToMap(plugins, plan, state, isUpdate)
-
-		output["plugins"] = plugins
-	}
-
-	upstream, err := UpstreamTypeStateToMap(state.Upstream)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if upstream != nil {
-		output["upstream"] = upstream
-	}
-
-	return output, nil
+	return terraformDataModel
 }

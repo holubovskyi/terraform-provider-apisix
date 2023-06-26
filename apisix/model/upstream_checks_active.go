@@ -1,147 +1,134 @@
 package model
 
 import (
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
-	"terraform-provider-apisix/apisix/validator"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/holubovskyi/apisix-client-go"
 )
 
 type UpstreamChecksActiveType struct {
 	Type                   types.String                       `tfsdk:"type"`
-	Timeout                types.Number                       `tfsdk:"timeout"`
-	Concurrency            types.Number                       `tfsdk:"concurrency"`
+	Timeout                types.Int64                        `tfsdk:"timeout"`
+	Concurrency            types.Int64                        `tfsdk:"concurrency"`
 	HTTPPath               types.String                       `tfsdk:"http_path"`
 	Host                   types.String                       `tfsdk:"host"`
-	Port                   types.Number                       `tfsdk:"port"`
+	Port                   types.Int64                        `tfsdk:"port"`
 	HTTPSVerifyCertificate types.Bool                         `tfsdk:"https_verify_certificate"`
 	ReqHeaders             types.List                         `tfsdk:"req_headers"`
 	Healthy                *UpstreamChecksActiveHealthyType   `tfsdk:"healthy"`
 	Unhealthy              *UpstreamChecksActiveUnhealthyType `tfsdk:"unhealthy"`
 }
 
-var UpstreamChecksActiveSchemaAttribute = tfsdk.Attribute{
-	Optional: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"type": {
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.StringInSlice("http", "https", "tcp"),
+var UpstreamChecksActiveSchemaAttribute = schema.SingleNestedAttribute{
+	MarkdownDescription: "Active health check mainly means that APISIX actively detects the survivability of upstream nodes through probes.",
+	Optional:            true,
+	Attributes: map[string]schema.Attribute{
+		"type": schema.StringAttribute{
+			MarkdownDescription: "The type of active check. Valid values are `http`, `https`, and `tcp`",
+			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("http"),
+			Validators: []validator.String{
+				stringvalidator.OneOf([]string{"http", "https", "tcp"}...),
 			},
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("http"),
+		},
+		"timeout": schema.Int64Attribute{
+			MarkdownDescription: "The timeout period of the active check (seconds).",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(1),
+		},
+		"concurrency": schema.Int64Attribute{
+			MarkdownDescription: "The number of targets to be checked at the same time during the active check.",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(10),
+		},
+		"http_path": schema.StringAttribute{
+			MarkdownDescription: "The HTTP request path that is actively checked.",
+			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("/"),
+		},
+		"host": schema.StringAttribute{
+			MarkdownDescription: "The hostname of the HTTP request actively checked.",
+			Optional:            true,
+			Computed:            false,
+		},
+		"port": schema.Int64Attribute{
+			MarkdownDescription: "The host port of the HTTP request that is actively checked.",
+			Optional:            true,
+			Computed:            false,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 65535),
 			},
-			Description: "The type of active check",
 		},
-
-		"timeout": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(1),
-			},
-			Description: "The timeout period of the active check (unit: second)",
+		"https_verify_certificate": schema.BoolAttribute{
+			MarkdownDescription: "Active check whether to check the SSL certificate of the remote host when HTTPS type checking is used.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
 		},
-		"concurrency": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultNumber(10),
-			},
-			Description: "The number of targets to be checked at the same time during the active check",
+		"req_headers": schema.ListAttribute{
+			MarkdownDescription: "Active check When using HTTP or HTTPS type checking, set additional request header information.",
+			ElementType:         types.StringType,
+			Optional:            true,
+			Computed:            true,
+			Default:             listdefault.StaticValue(types.ListNull(types.StringType)),
 		},
-		"http_path": {
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultString("/"),
-			},
-			Description: "The HTTP request path that is actively checked",
-		},
-		"host": {
-			Type:        types.StringType,
-			Optional:    true,
-			Description: "The hostname of the HTTP request actively checked",
-		},
-		"port": {
-			Type:     types.NumberType,
-			Optional: true,
-			Computed: true,
-			Validators: []tfsdk.AttributeValidator{
-				validator.NumberGreatOrEqualThan(1),
-				validator.NumberLessOrEqualThan(65535),
-			},
-			Description: "The host port of the HTTP request that is actively checked",
-		},
-		"https_verify_certificate": {
-			Type:     types.BoolType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultBool(true),
-			},
-			Description: "Active check whether to check the SSL certificate of the remote host when HTTPS type checking is used",
-		},
-		"req_headers": {
-			Type:        types.ListType{ElemType: types.StringType},
-			Optional:    true,
-			Description: "Active check When using HTTP or HTTPS type checking, set additional request header information",
-		},
-		"healthy": UpstreamChecksActiveHealthySchemaAttribute,
-
+		"healthy":   UpstreamChecksActiveHealthySchemaAttribute,
 		"unhealthy": UpstreamChecksActiveUnhealthySchemaAttribute,
-	}),
+	},
 }
 
-func UpstreamChecksActiveMapToState(data map[string]interface{}) *UpstreamChecksActiveType {
-	v := data["active"]
-	if v == nil {
-		return nil
-	}
-
-	output := UpstreamChecksActiveType{}
-	value := v.(map[string]interface{})
-
-	utils.MapValueToStringTypeValue(value, "type", &output.Type)
-	utils.MapValueToNumberTypeValue(value, "timeout", &output.Timeout)
-	utils.MapValueToNumberTypeValue(value, "concurrency", &output.Concurrency)
-	utils.MapValueToStringTypeValue(value, "http_path", &output.HTTPPath)
-	utils.MapValueToStringTypeValue(value, "host", &output.Host)
-	utils.MapValueToNumberTypeValue(value, "port", &output.Port)
-	utils.MapValueToBoolTypeValue(value, "https_verify_certificate", &output.HTTPSVerifyCertificate)
-	utils.MapValueToListTypeValue(value, "req_headers", &output.ReqHeaders)
-
-	output.Healthy = UpstreamChecksActiveHealthyMapToState(value)
-	output.Unhealthy = UpstreamChecksActiveUnhealthyMapToState(value)
-
-	return &output
-}
-
-func UpstreamChecksActiveStateToMap(state *UpstreamChecksActiveType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamChecksActiveFromTerraformToApi(ctx context.Context, terraformDataModel *UpstreamChecksActiveType) (apiDataModel *api_client.UpstreamChecksActiveType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
+	result := api_client.UpstreamChecksActiveType{
+		Type:                   terraformDataModel.Type.ValueString(),
+		Timeout:                terraformDataModel.Timeout.ValueInt64(),
+		Concurrency:            terraformDataModel.Concurrency.ValueInt64(),
+		HTTPPath:               terraformDataModel.HTTPPath.ValueString(),
+		Host:                   terraformDataModel.Host.ValueStringPointer(),
+		Port:                   terraformDataModel.Port.ValueInt64Pointer(),
+		HTTPSVerifyCertificate: terraformDataModel.HTTPSVerifyCertificate.ValueBool(),
+		Healthy:                UpstreamChecksActiveHealthyFromTerraformToApi(ctx, terraformDataModel.Healthy),
+		Unhealthy:              UpstreamChecksActiveUnhealthyFromTerraformToApi(ctx, terraformDataModel.Unhealthy),
+	}
 
-	utils.StringTypeValueToMap(state.Type, output, "type")
-	utils.NumberTypeValueToMap(state.Timeout, output, "timeout")
-	utils.NumberTypeValueToMap(state.Concurrency, output, "concurrency")
-	utils.StringTypeValueToMap(state.HTTPPath, output, "http_path")
-	utils.StringTypeValueToMap(state.Host, output, "host")
-	utils.NumberTypeValueToMap(state.Port, output, "port")
-	utils.BoolTypeValueToMap(state.HTTPSVerifyCertificate, output, "https_verify_certificate")
-	utils.ListTypeValueToMap(state.ReqHeaders, output, "req_headers")
+	_ = terraformDataModel.ReqHeaders.ElementsAs(ctx, &result.ReqHeaders, false)
 
-	UpstreamChecksActiveHealthyStateToMap(state.Healthy, output)
-	UpstreamChecksActiveUnhealthyStateToMap(state.Unhealthy, output)
+	return &result
+}
 
-	dMap["active"] = output
+func UpstreamChecksActiveFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksActiveType) (terraformDataModel *UpstreamChecksActiveType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksActiveType{
+		Type:                   types.StringValue(apiDataModel.Type),
+		Timeout:                types.Int64Value(apiDataModel.Timeout),
+		Concurrency:            types.Int64Value(apiDataModel.Concurrency),
+		HTTPPath:               types.StringValue(apiDataModel.HTTPPath),
+		Host:                   types.StringPointerValue(apiDataModel.Host),
+		Port:                   types.Int64PointerValue(apiDataModel.Port),
+		HTTPSVerifyCertificate: types.BoolValue(apiDataModel.HTTPSVerifyCertificate),
+		Healthy:                UpstreamChecksActiveHealthyFromApiToTerraform(ctx, apiDataModel.Healthy),
+		Unhealthy:              UpstreamChecksActiveUnhealthyFromApiToTerraform(ctx, apiDataModel.Unhealthy),
+	}
+	result.ReqHeaders, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.ReqHeaders)
+
+	return &result
 }

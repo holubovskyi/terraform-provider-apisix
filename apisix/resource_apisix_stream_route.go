@@ -2,209 +2,199 @@ package apisix
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/holubovskyi/apisix-client-go"
+
 	"terraform-provider-apisix/apisix/model"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type ResourceStreamRouteType struct {
-	p provider
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ resource.Resource                = &streamRouteResource{}
+	_ resource.ResourceWithConfigure   = &streamRouteResource{}
+	_ resource.ResourceWithImportState = &streamRouteResource{}
+)
+
+// NewStreamRouteResource is a helper function to simplify the provider implementation.
+func NewStreamRouteResource() resource.Resource {
+	return &streamRouteResource{}
 }
 
-func (r ResourceStreamRouteType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return ResourceStreamRouteType{
-		p: *(p.(*provider)),
-	}, nil
+// streamRouteResource is the resource implementation.
+type streamRouteResource struct {
+	client *api_client.ApiClient
 }
 
-func (r ResourceStreamRouteType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return model.StreamRouteTypeSchema, nil
+// Metadata returns the resource type name.
+func (r *streamRouteResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_stream_route"
 }
 
-func (r ResourceStreamRouteType) Create(ctx context.Context, request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
-	var plan model.StreamRouteType
+// Schema defines the schema for the resource.
+func (r *streamRouteResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = model.StreamRouteSchema
+}
 
-	diags := request.Plan.Get(ctx, &plan)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+// Configure adds the provider configured client to the resource.
+func (r *streamRouteResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
 		return
 	}
 
-	requestObjectJsonBytes, err := model.StreamRouteTypeStateToMap(plan)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Error in transformation from state to map",
-			"Unexpected error: "+err.Error(),
+	client, ok := req.ProviderData.(*api_client.ApiClient)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *api_client.ApiClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
 
-	result, err := r.p.client.CreateStreamRoute(requestObjectJsonBytes)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't create new stream route resource",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	newState, err := model.StreamRouteTypeMapToState(result)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
+	r.client = client
 }
 
-func (r ResourceStreamRouteType) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest, response *tfsdk.DeleteResourceResponse) {
-	var state model.StreamRouteType
-
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+// Create a new resource.
+func (r *streamRouteResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Debug(ctx, "Start of the stream route resource creation")
+	// Retrieve values from plan
+	var plan model.StreamRouteModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	err := r.p.client.DeleteStreamRoute(state.ID.Value)
+	// Generate API request body from plan
+	newStreamRouteRequest := model.StreamRouteFromTerraformToApi(ctx, &plan)
 
+	// Create new stream route
+	newStreamRouteReponse, err := r.client.CreateStreamRoute(newStreamRouteRequest)
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't delete stream route resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error creating Stream Route",
+			"Could not create Stream Route, unexpected error: "+err.Error(),
 		)
 		return
 	}
 
-	response.State.RemoveResource(ctx)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	// Map response body to schema and populate Computed attribute values
+	newState := model.StreamRouteFromApiToTerraform(ctx, newStreamRouteReponse)
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
-func (r ResourceStreamRouteType) Read(ctx context.Context, request tfsdk.ReadResourceRequest, response *tfsdk.ReadResourceResponse) {
-	var state model.StreamRouteType
-
-	diags := request.State.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+// Read resource information.
+func (r *streamRouteResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Debug(ctx, "Start of the stream route resource read")
+	// Get current state
+	var state model.StreamRouteModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if state.ID.Null {
-		response.Diagnostics.AddError(
-			"Can't read stream route resource, ID is null",
-			"Unexpected error",
-		)
-		return
-	}
-
-	result, err := r.p.client.GetStreamRoute(state.ID.Value)
-
+	// Get refreshed stream route from the APISIX
+	streamRouteStateResponse, err := r.client.GetStreamRoute(state.ID.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't read ssl certificate resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX Stream Route",
+			"Could not read APISIX Stream Route by ID "+state.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
-	newState, err := model.StreamRouteTypeMapToState(result)
+	// Overwrite with refreshed state
+	newState := model.StreamRouteFromApiToTerraform(ctx, streamRouteStateResponse)
 
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	// Set refreshed state
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
-func (r ResourceStreamRouteType) Update(ctx context.Context, request tfsdk.UpdateResourceRequest, response *tfsdk.UpdateResourceResponse) {
-	var state model.StreamRouteType
-
-	diags := request.Plan.Get(ctx, &state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+// Update the resource.
+func (r *streamRouteResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Debug(ctx, "Start of the stream route resource update")
+	// Retrieve values from plan
+	var plan model.StreamRouteModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	requestObjectJsonBytes, err := model.StreamRouteTypeStateToMap(state)
+	// Generate API request body from plan
+	updateStreamRouteRequest := model.StreamRouteFromTerraformToApi(ctx, &plan)
+
+	// Update existing stream route
+	_, err := r.client.UpdateStreamRoute(plan.ID.ValueString(), updateStreamRouteRequest)
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Error in transformation from state to map",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error Updating APISIX Stream Route",
+			"Could not update Stream Route, unexpected error: "+err.Error(),
 		)
 		return
 	}
 
-	result, err := r.p.client.UpdateStreamRoute(state.ID.Value, requestObjectJsonBytes)
-
+	// Fetch updated stream route
+	updatedStreamRoute, err := r.client.GetStreamRoute(plan.ID.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't update ssl certificate resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error Reading APISIX Stream Route",
+			"Could not read APISIX Stream Route by ID "+plan.ID.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
-	newState, err := model.StreamRouteTypeMapToState(result)
+	newState := model.StreamRouteFromApiToTerraform(ctx, updatedStreamRoute)
 
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't convert json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	diags = response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, &newState)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 }
 
-func (r ResourceStreamRouteType) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest, response *tfsdk.ImportResourceStateResponse) {
-	result, err := r.p.client.GetStreamRoute(request.ID)
+// Delete resource.
+func (r *streamRouteResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Debug(ctx, "Start of the stream route resource delete")
+	// Get current state
+	var state model.StreamRouteModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+	// Delete the Stream Route
+	err := r.client.DeleteStreamRoute(state.ID.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't read ssl certificate resource",
-			"Unexpected error: "+err.Error(),
+		resp.Diagnostics.AddError(
+			"Error Deleting APISIX Stream Route",
+			"Could not delete stream route, unexpected error: "+err.Error(),
 		)
 		return
 	}
+}
 
-	newState, err := model.StreamRouteTypeMapToState(result)
-
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't transform json to state",
-			"Unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	diags := response.State.Set(ctx, &newState)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
+// Import resource into state
+func (r *streamRouteResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Debug(ctx, "Start of the stream route importing")
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

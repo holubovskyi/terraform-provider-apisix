@@ -1,4 +1,4 @@
-package common
+package model
 
 var HttpMethods = []string{
 	"GET",
@@ -10,7 +10,6 @@ var HttpMethods = []string{
 	"MKCOL",
 	"COPY",
 	"MOVE",
-	"PROPFIND",
 	"PROPFIND",
 	"LOCK",
 	"UNLOCK",

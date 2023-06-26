@@ -2,168 +2,120 @@ package model
 
 import (
 	"context"
+
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"math/big"
-	"terraform-provider-apisix/apisix/plan_modifier"
-	"terraform-provider-apisix/apisix/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type SslCertificateType struct {
-	ID            types.String `tfsdk:"id"`
-	IsEnabled     types.Bool   `tfsdk:"is_enabled"`
-	Certificate   types.String `tfsdk:"certificate"`
-	PrivateKey    types.String `tfsdk:"private_key"`
-	Snis          types.List   `tfsdk:"snis"`
-	ValidityEnd   types.Number `tfsdk:"validity_end"`
-	ValidityStart types.Number `tfsdk:"validity_start"`
-	Labels        types.Map    `tfsdk:"labels"`
+// SSLCertificateResourceModel maps the resource schema data.
+type SSLCertificateResourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	Status      types.Int64  `tfsdk:"status"`
+	Certificate types.String `tfsdk:"certificate"`
+	PrivateKey  types.String `tfsdk:"private_key"`
+	Snis        types.List   `tfsdk:"snis"`
+	Type        types.String `tfsdk:"type"`
+	Labels      types.Map    `tfsdk:"labels"`
 }
 
-var SslCertificateSchema = tfsdk.Schema{
-	Attributes: map[string]tfsdk.Attribute{
-		"id": {
-			Type:     types.StringType,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.UseStateForUnknown(),
+var SSLCertificateSchema = schema.Schema{
+	Description: "Manages SSL certificates.",
+	Attributes: map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Identifier of the certificate.",
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"certificate": {
-			Type:        types.StringType,
+		"certificate": schema.StringAttribute{
+			Description: "HTTPS certificate.",
 			Required:    true,
-			Description: "https certificate",
 		},
-		"private_key": {
-			Type:        types.StringType,
+		"private_key": schema.StringAttribute{
+			Description: "HTTPS private key.",
 			Required:    true,
 			Sensitive:   true,
-			Description: "https private key",
 		},
-
-		"validity_end": {
-			Type:        types.NumberType,
-			Optional:    true,
-			Computed:    true,
-			Description: "NotAfter",
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultFunction(func(ctx context.Context, request tfsdk.ModifyAttributePlanRequest, response *tfsdk.ModifyAttributePlanResponse) (attr.Value, error) {
-					var state SslCertificateType
-					request.Config.Get(ctx, &state)
-					notAfter, err := CertNotAfter(state.Certificate.Value)
-					if err != nil {
-						return types.Number{Null: true}, err
-					}
-					return types.Number{Value: big.NewFloat(float64(notAfter))}, nil
-				}),
-			},
+		"snis": schema.ListAttribute{
+			MarkdownDescription: "A non-empty array of HTTPS SNI. Required if `type` is `server`",
+			Optional:            true,
+			Computed:            true,
+			ElementType:         types.StringType,
 		},
-
-		"validity_start": {
-			Type:        types.NumberType,
-			Optional:    true,
-			Computed:    true,
-			Description: "NotBefore",
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultFunction(func(ctx context.Context, request tfsdk.ModifyAttributePlanRequest, response *tfsdk.ModifyAttributePlanResponse) (attr.Value, error) {
-					var state SslCertificateType
-					request.Config.Get(ctx, &state)
-					notBefore, err := CertNotBefore(state.Certificate.Value)
-					if err != nil {
-						return types.Number{Null: true}, err
-					}
-					return types.Number{Value: big.NewFloat(float64(notBefore))}, nil
-				}),
-			},
-		},
-
-		"snis": {
-			Type:        types.ListType{ElemType: types.StringType},
-			Optional:    true,
-			Computed:    true,
-			Description: "a non-empty arrays of https SNI",
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultFunction(func(ctx context.Context, request tfsdk.ModifyAttributePlanRequest, response *tfsdk.ModifyAttributePlanResponse) (attr.Value, error) {
-					var state SslCertificateType
-					request.Config.Get(ctx, &state)
-					snis, err := CertSNIS(state.Certificate.Value, state.PrivateKey.Value)
-					if err != nil {
-						return types.List{Null: true}, err
-					}
-
-					var values []attr.Value
-					for _, value := range snis {
-						values = append(values, types.String{Value: value})
-					}
-
-					return types.List{ElemType: types.StringType, Elems: values}, nil
-				}),
-			},
-		},
-		"labels": {
-			Type:     types.MapType{ElemType: types.StringType},
-			Optional: true,
-			Description: "Attributes of the resource specified as key-value pairs.",
-		},
-		"is_enabled": {
-			Type:     types.BoolType,
+		"type": schema.StringAttribute{
+			MarkdownDescription: "Identifies the type of certificate, default `server`\n" +
+				"`client` Indicates that the certificate is a client certificate, which is used when APISIX accesses the upstream;\n" +
+				"`server` Indicates that the certificate is a server-side certificate, which is used by APISIX when verifying client requests.",
 			Optional: true,
 			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				plan_modifier.DefaultBool(true),
+			Default:  stringdefault.StaticString("server"),
+			Validators: []validator.String{
+				// Validate string value must be "server" or "client"
+				stringvalidator.OneOf([]string{"server", "client"}...),
+			},
+		},
+		"labels": schema.MapAttribute{
+			MarkdownDescription: "Attributes of the resource specified as key-value pairs. An individual pair cannot be deleted using APISIX API" +
+				"In order to delete an individual pair, you can delete all labels and reapply the resource with the desired labels map",
+			Optional:    true,
+			ElementType: types.StringType,
+		},
+		"status": schema.Int64Attribute{
+			MarkdownDescription: "Enables the current SSL. Set to `1` (enabled) by default. `1` to enable, `0` to disable",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(1),
+			Validators: []validator.Int64{
+				// Validate integer value must be 0 or 1
+				int64validator.OneOf([]int64{0, 1}...),
 			},
 		},
 	},
 }
 
-func SslCertificateTypeMapToState(jsonMap map[string]interface{}) (*SslCertificateType, error) {
-	newState := SslCertificateType{}
+func SSLCertificateFromTerraformToAPI(ctx context.Context, terraformDataModel *SSLCertificateResourceModel) (apiDataModel api_client.SSLCertificate, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
+	apiDataModel.Status = uint(terraformDataModel.Status.ValueInt64())
+	apiDataModel.Certificate = terraformDataModel.Certificate.ValueString()
+	apiDataModel.PrivateKey = terraformDataModel.PrivateKey.ValueString()
+	apiDataModel.Type = terraformDataModel.Type.ValueString()
 
-	utils.MapValueToStringTypeValue(jsonMap, "id", &newState.ID)
-	utils.MapValueToStringTypeValue(jsonMap, "cert", &newState.Certificate)
-	utils.MapValueToListTypeValue(jsonMap, "snis", &newState.Snis)
-	utils.MapValueToNumberTypeValue(jsonMap, "validity_start", &newState.ValidityStart)
-	utils.MapValueToNumberTypeValue(jsonMap, "validity_end", &newState.ValidityEnd)
-	utils.MapValueToMapTypeValue(jsonMap, "labels", &newState.Labels)
+	snisDiag = terraformDataModel.Snis.ElementsAs(ctx, &apiDataModel.SNIs, false)
+	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
 
-	if v := jsonMap["status"]; v != nil {
-		if v.(float64) == 1 {
-			newState.IsEnabled = types.Bool{Value: true}
-		} else {
-			newState.IsEnabled = types.Bool{Value: false}
-		}
-	} else {
-		newState.IsEnabled = types.Bool{Null: true}
-	}
-	return &newState, nil
+	return apiDataModel, snisDiag, labelsDiag
 }
 
-func SslCertificateTypeStateToMap(state SslCertificateType) (map[string]interface{}, error) {
+func SSLCertificateFromAPIToTerraform(ctx context.Context, apiDataModel *api_client.SSLCertificate) (terraformDataModel SSLCertificateResourceModel, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
+	terraformDataModel.ID = types.StringValue(apiDataModel.ID)
+	terraformDataModel.Status = types.Int64Value(int64(apiDataModel.Status))
+	terraformDataModel.Certificate = types.StringValue(apiDataModel.Certificate)
+	// APISIX API returns the private key in base64 form
+	//terraformDataModel.PrivateKey = types.StringValue(apiDataModel.PrivateKey)
+	terraformDataModel.Type = types.StringValue(apiDataModel.Type)
 
-	requestObject := make(map[string]interface{})
+	terraformDataModel.Snis, snisDiag = types.ListValueFrom(ctx, types.StringType, apiDataModel.SNIs)
+	terraformDataModel.Labels, labelsDiag = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-	utils.StringTypeValueToMap(state.Certificate, requestObject, "cert")
-	utils.StringTypeValueToMap(state.PrivateKey, requestObject, "key")
-	utils.ListTypeValueToMap(state.Snis, requestObject, "snis")
-	utils.NumberTypeValueToMap(state.ValidityStart, requestObject, "validity_start")
-	utils.NumberTypeValueToMap(state.ValidityEnd, requestObject, "validity_end")
-	utils.MapTypeValueToMap(state.Labels, requestObject, "labels")
-	if !state.IsEnabled.Null {
-		if state.IsEnabled.Value {
-			requestObject["status"] = 1
-		} else {
-			requestObject["status"] = 0
-		}
-	}
-	return requestObject, nil
+	return terraformDataModel, snisDiag, labelsDiag
 }
 
+// Get SNIS list from the certificate
 func CertSNIS(crt string, key string) ([]string, error) {
 	certDERBlock, _ := pem.Decode([]byte(crt))
 	if certDERBlock == nil {
@@ -213,25 +165,4 @@ func CertSNIS(crt string, key string) ([]string, error) {
 	}
 
 	return snis, nil
-}
-
-func CertNotAfter(crt string) (int64, error) {
-	certDERBlock, _ := pem.Decode([]byte(crt))
-	if certDERBlock == nil {
-		return 0, nil
-	}
-
-	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
-	return x509Cert.NotAfter.Unix(), err
-
-}
-func CertNotBefore(crt string) (int64, error) {
-	certDERBlock, _ := pem.Decode([]byte(crt))
-	if certDERBlock == nil {
-		return 0, nil
-	}
-
-	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
-	return x509Cert.NotBefore.Unix(), err
-
 }

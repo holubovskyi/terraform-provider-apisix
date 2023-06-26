@@ -1,93 +1,58 @@
 package model
 
 import (
-	"reflect"
-	"terraform-provider-apisix/apisix/utils"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type GlobalRuleType struct {
+// GlobalRuleResourceModel maps the resource schema data.
+type GlobalRuleResourceModel struct {
 	ID      types.String `tfsdk:"id"`
-	Plugins *PluginsType `tfsdk:"plugins"`
+	Plugins types.String `tfsdk:"plugins"`
 }
 
-var GlobalRuleSchema = tfsdk.Schema{
-	Attributes: map[string]tfsdk.Attribute{
-		"id": {
-			Type:     types.StringType,
-			Required: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.RequiresReplace(),
+var GlobalRuleSchema = schema.Schema{
+	Description: "Sets Plugins which run globally.",
+	Attributes: map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Identifier of the global rule.",
+			Required:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
 			},
 		},
-		"plugins": {
-			Optional:   true,
-			Attributes: PluginsSchemaAttribute,
+		"plugins": schema.StringAttribute{
+			Description: "Plugins that are executed during the request/response cycle.",
+			Required:    true,
 		},
 	},
 }
 
-func GlobalRuleTypeMapToState(jsonMap map[string]interface{}) (*GlobalRuleType, error) {
-	newState := GlobalRuleType{}
+func GlobalRuleFromTerraformToApi(ctx context.Context, terraformDataModel *GlobalRuleResourceModel) (apiDataModel api_client.GlobalRule) {
+	apiDataModel.ID = terraformDataModel.ID.ValueStringPointer()
+	apiDataModel.Plugins = PluginsStringToJson(ctx, terraformDataModel.Plugins)
 
-	utils.MapValueToStringTypeValue(jsonMap, "id", &newState.ID)
+	tflog.Debug(ctx, "Result of the GlobalRuleFromTerraformToApi", map[string]any{
+		"Values": apiDataModel,
+	})
 
-	if v := jsonMap["plugins"]; v != nil {
-		value := v.(map[string]interface{})
-		pluginsType := PluginsType{}
-
-		e := reflect.ValueOf(&pluginsType).Elem()
-		for i := 0; i < e.NumField(); i++ {
-			switch e.Field(i).Interface().(type) {
-			case PluginCommonInterface:
-				reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).MapToState(value, &pluginsType)
-			default:
-
-			}
-		}
-
-		//PluginCustomTypeMapToState(value, &pluginsType, plan, state)
-		newState.Plugins = &pluginsType
-	} else {
-		newState.Plugins = nil
-	}
-	return &newState, nil
+	return apiDataModel
 }
 
-func GlobalRuleTypeStateToMap(state GlobalRuleType) (map[string]interface{}, error) {
+func GlobalRuleFromApiToTerraform(ctx context.Context, apiDataModel *api_client.GlobalRule) (terraformDataModel GlobalRuleResourceModel) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Plugins = PluginsFromJsonToString(ctx, apiDataModel.Plugins)
 
-	output := make(map[string]interface{})
-	plugins := make(map[string]interface{})
-	if state.Plugins != nil {
-		statePlugins := state.Plugins
+	tflog.Debug(ctx, "Result of the GlobalRuleFromApiToTerraform", map[string]any{
+		"Values": terraformDataModel,
+	})
 
-		e := reflect.ValueOf(statePlugins).Elem()
-		for i := 0; i < e.NumField(); i++ {
-
-			if !e.Field(i).IsNil() {
-				switch e.Field(i).Interface().(type) {
-				case PluginCommonInterface:
-					e.Field(i).Interface().(PluginCommonInterface).StateToMap(plugins)
-				default:
-
-				}
-
-			}
-			//else if isUpdate {
-			//	switch e.Field(i).Interface().(type) {
-			//	case PluginCommonInterface:
-			//		plugins[reflect.New(e.Type().Field(i).Type.Elem()).Interface().(PluginCommonInterface).Name()] = nil
-			//	default:
-			//	}
-			//}
-		}
-
-		//PluginCustomTypeStateToMap(plugins, plan, state, isUpdate)
-
-		output["plugins"] = plugins
-	}
-
-	return output, nil
+	return terraformDataModel
 }

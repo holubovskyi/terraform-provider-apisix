@@ -1,7 +1,11 @@
 package model
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"context"
+
+	"github.com/holubovskyi/apisix-client-go"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 type UpstreamChecksType struct {
@@ -9,39 +13,38 @@ type UpstreamChecksType struct {
 	Passive *UpstreamChecksPassiveType `tfsdk:"passive"`
 }
 
-var UpstreamChecksSchemaAttribute = tfsdk.Attribute{
-	Optional: true,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+var UpstreamChecksSchemaAttribute = schema.SingleNestedAttribute{
+	MarkdownDescription: "Configures the parameters for the health check.",
+	Optional:            true,
+
+	Attributes: map[string]schema.Attribute{
 		"active":  UpstreamChecksActiveSchemaAttribute,
 		"passive": UpstreamChecksPassiveSchemaAttribute,
-	}),
+	},
 }
 
-func UpstreamChecksStateToMap(state *UpstreamChecksType, dMap map[string]interface{}) {
-	if state == nil {
+func UpstreamChecksFromTerraformToAPI(ctx context.Context, terraformDataModel *UpstreamChecksType) (apiDataModel *api_client.UpstreamChecksType) {
+	if terraformDataModel == nil {
 		return
 	}
 
-	output := make(map[string]interface{})
-
-	UpstreamChecksActiveStateToMap(state.Active, output)
-	UpstreamChecksPassiveStateToMap(state.Passive, output)
-
-	dMap["checks"] = output
-}
-
-func UpstreamChecksMapToState(data map[string]interface{}) *UpstreamChecksType {
-	checks := data["checks"]
-
-	if checks == nil {
-		return nil
+	result := api_client.UpstreamChecksType{
+		Active:  UpstreamChecksActiveFromTerraformToApi(ctx, terraformDataModel.Active),
+		Passive: UpstreamChecksPassiveFromTerraformToApi(ctx, terraformDataModel.Passive),
 	}
 
-	value := checks.(map[string]interface{})
-	result := UpstreamChecksType{}
+	return &result
+}
 
-	result.Active = UpstreamChecksActiveMapToState(value)
-	result.Passive = UpstreamChecksPassiveMapToState(value)
+func UpstreamChecksFromApiToTerraform(ctx context.Context, apiDataModel *api_client.UpstreamChecksType) (terraformDataModel *UpstreamChecksType) {
+	if apiDataModel == nil {
+		return
+	}
+
+	result := UpstreamChecksType{
+		Active:  UpstreamChecksActiveFromApiToTerraform(ctx, apiDataModel.Active),
+		Passive: UpstreamChecksPassiveFromApiToTerraform(ctx, apiDataModel.Passive),
+	}
 
 	return &result
 }
