@@ -63,7 +63,7 @@ In another terminal window, navigate to the `docker_compose` directory.
 ```bash
 cd docker_compose
 ```
-Run `docker-compose up` to spin up a local instance of HashiCups on port 9080.
+Run `docker-compose up` to spin up a local instance of APISIX on port 9180.
 ```bash
 docker-compose up
 ```
@@ -87,7 +87,7 @@ provider "apisix" {
   api_key  = "edd1c9f034335f136f87ad84b625c8f1"
 }
 ```
-Verify the environment variable behavior by setting the provider-defined HASHICUPS_HOST, HASHICUPS_USERNAME, and HASHICUPS_PASSWORD environment variables when executing a Terraform plan. Terraform will configure the HashiCups client via these environment variables.
+Verify the environment variable behavior by setting the provider-defined APISIX_ENDPOINT and APISIX_APIKEY environment variables when executing a Terraform plan. Terraform will configure the HashiCups client via these environment variables.
 ```bash
 $ APISIX_ENDPOINT=http://127.0.0.1:9180 \
 APISIX_API_KEY=edd1c9f034335f136f87ad84b625c8f1 \

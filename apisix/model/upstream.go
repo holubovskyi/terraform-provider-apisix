@@ -161,25 +161,8 @@ func UpstreamFromTerraformToAPI(ctx context.Context, terraformDataModel *Upstrea
 	apiDataModel.Checks = UpstreamChecksFromTerraformToAPI(ctx, terraformDataModel.Checks)
 	apiDataModel.Nodes = UpstreamNodesFromTerraformToAPI(ctx, terraformDataModel.Nodes)
 
-	tflog.Debug(ctx, "Result of the UpstreamFromTerraformToAPI", map[string]any{
-		"Type":            apiDataModel.Type,
-		"ServiceName":     apiDataModel.ServiceName,
-		"DiscoveryType":   apiDataModel.DiscoveryType,
-		"Name":            apiDataModel.Name,
-		"Desc":            apiDataModel.Desc,
-		"PassHost":        apiDataModel.PassHost,
-		"Scheme":          apiDataModel.Scheme,
-		"Retries":         apiDataModel.Retries,
-		"RetryTimeout":    apiDataModel.RetryTimeout,
-		"UpstreamHost":    apiDataModel.UpstreamHost,
-		"HashOn":          apiDataModel.HashOn,
-		"Key":             apiDataModel.Key,
-		"TLSClientCertID": apiDataModel.TLSClientCertID,
-		"Labels":          apiDataModel.Labels,
-		"Timeout":         apiDataModel.Timeout,
-		"KeepalivePool":   apiDataModel.KeepalivePool,
-		"Checks":          apiDataModel.Checks,
-		"Nodes":           apiDataModel.Nodes,
+	tflog.Debug(ctx, "Result of UpstreamFromTerraformToAPI", map[string]any{
+		"Values": apiDataModel,
 	})
 
 	return apiDataModel, labelsDiag
@@ -208,25 +191,9 @@ func UpstreamFromApiToTerraform(ctx context.Context, apiDataModel *api_client.Up
 	terraformDataModel.Checks = UpstreamChecksFromApiToTerraform(ctx, apiDataModel.Checks)
 	terraformDataModel.Nodes = UpstreamNodesFromApiToTerraform(ctx, apiDataModel.Nodes)
 
-	tflog.Debug(ctx, "Result of the UpstreamFromApiToTerraform", map[string]any{
-		"Type":            terraformDataModel.Type,
-		"ServiceName":     terraformDataModel.ServiceName,
-		"DiscoveryType":   terraformDataModel.DiscoveryType,
-		"Name":            terraformDataModel.Name,
-		"Desc":            terraformDataModel.Desc,
-		"PassHost":        terraformDataModel.PassHost,
-		"Scheme":          terraformDataModel.Scheme,
-		"Retries":         terraformDataModel.Retries,
-		"RetryTimeout":    terraformDataModel.RetryTimeout,
-		"UpstreamHost":    terraformDataModel.UpstreamHost,
-		"HashOn":          terraformDataModel.HashOn,
-		"Key":             terraformDataModel.Key,
-		"TLSClientCertID": terraformDataModel.TLSClientCertID,
-		"Labels":          terraformDataModel.Labels,
-		"Timeout":         terraformDataModel.Timeout,
-		"KeepalivePool":   terraformDataModel.KeepalivePool,
-		"Checks":          terraformDataModel.Checks,
-		"Nodes":           terraformDataModel.Nodes,
+	tflog.Debug(ctx, "Result of UpstreamFromApiToTerraform", map[string]any{
+		"Values": terraformDataModel,
 	})
+
 	return terraformDataModel, labelsDiag
 }
