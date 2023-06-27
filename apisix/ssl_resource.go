@@ -44,6 +44,13 @@ func (r *sslCertificateResource) Schema(_ context.Context, _ resource.SchemaRequ
 
 // Implement plan modification
 func (r *sslCertificateResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// If the entire plan is null, the resource is planned for destruction.
+	if req.Plan.Raw.IsNull() {
+		// Resource modification will not be performed when the resource is deleted .
+		tflog.Debug(ctx, "The esource deletion is in progress")
+		return
+	}
+
 	// Retrieve snis value from plan
 	var state model.SSLCertificateResourceModel
 	diags := req.Config.Get(ctx, &state)
@@ -101,17 +108,7 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Generate API request body from plan
-	newCertificateRequest, snisDiag, labelsDiag := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
-
-	resp.Diagnostics.Append(snisDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(labelsDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	newCertificateRequest := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
 
 	// Create new certificate
 	newCertificateResponse, err := r.client.CreateSslCertificate(newCertificateRequest)
@@ -124,18 +121,8 @@ func (r *sslCertificateResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Map response body to schema and populate Computed attribute values
-	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, newCertificateResponse)
+	newState := model.SSLCertificateFromAPIToTerraform(ctx, newCertificateResponse)
 	newState.PrivateKey = types.StringValue(plan.PrivateKey.ValueString())
-
-	resp.Diagnostics.Append(snisDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(labelsDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &newState)
@@ -167,18 +154,8 @@ func (r *sslCertificateResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Overwrite with refreshed state
-	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, certificateStatusResponse)
+	newState := model.SSLCertificateFromAPIToTerraform(ctx, certificateStatusResponse)
 	newState.PrivateKey = types.StringValue(state.PrivateKey.ValueString())
-
-	resp.Diagnostics.Append(snisDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(labelsDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &newState)
@@ -201,17 +178,7 @@ func (r *sslCertificateResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Generate API request body from plan
-	updateCertificateRequest, snisDiag, labelsDiag := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
-
-	resp.Diagnostics.Append(snisDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(labelsDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	updateCertificateRequest := model.SSLCertificateFromTerraformToAPI(ctx, &plan)
 
 	// Update existing certificate
 	_, err := r.client.UpdateSslCertificate(plan.ID.ValueString(), updateCertificateRequest)
@@ -233,18 +200,8 @@ func (r *sslCertificateResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	newState, snisDiag, labelsDiag := model.SSLCertificateFromAPIToTerraform(ctx, updatedCertificate)
+	newState := model.SSLCertificateFromAPIToTerraform(ctx, updatedCertificate)
 	newState.PrivateKey = types.StringValue(plan.PrivateKey.ValueString())
-
-	resp.Diagnostics.Append(snisDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(labelsDiag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &newState)
