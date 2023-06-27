@@ -25,7 +25,7 @@ type StreamRouteModel struct {
 }
 
 var StreamRouteSchema = schema.Schema{
-	Description: "Route used in the Stream Proxy.",
+	Description: "Manages APISIX Routes used in the Stream Proxy.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the stream route.",

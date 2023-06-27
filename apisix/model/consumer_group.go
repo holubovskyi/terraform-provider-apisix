@@ -21,7 +21,7 @@ type ConsumerGroupResourceModel struct {
 }
 
 var ConsumerGroupSchema = schema.Schema{
-	Description: "Group of Plugins which can be reused across Consumers.",
+	Description: "Manages APISIX Group of Plugins which can be reused across Consumers.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the consumer group.",

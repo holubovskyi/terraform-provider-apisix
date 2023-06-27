@@ -34,7 +34,7 @@ type SSLCertificateResourceModel struct {
 }
 
 var SSLCertificateSchema = schema.Schema{
-	Description: "Manages SSL certificates.",
+	Description: "Manages APISIX SSL certificates.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the certificate.",

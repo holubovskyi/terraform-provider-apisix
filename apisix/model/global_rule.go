@@ -19,7 +19,7 @@ type GlobalRuleResourceModel struct {
 }
 
 var GlobalRuleSchema = schema.Schema{
-	Description: "Sets Plugins which run globally.",
+	Description: "Sets APISIX Plugins which run globally.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the global rule.",
