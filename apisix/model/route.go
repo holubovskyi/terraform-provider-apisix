@@ -45,7 +45,7 @@ type RouteResourceModel struct {
 }
 
 var RouteSchema = schema.Schema{
-	Description: "Manages routes",
+	Description: "Manages APISIX routes.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the route.",

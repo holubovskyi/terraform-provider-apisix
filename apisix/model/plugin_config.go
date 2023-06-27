@@ -21,7 +21,7 @@ type PluginConfigResourceModel struct {
 }
 
 var PluginConfigSchema = schema.Schema{
-	Description: "Group of Plugins which can be reused across Routes..",
+	Description: "Manages APISIX Group of Plugins which can be reused across Routes.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the plugin config.",

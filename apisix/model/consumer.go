@@ -22,7 +22,7 @@ type ConsumerResourceModel struct {
 }
 
 var ConsumerSchema = schema.Schema{
-	Description: "Manages Consumers",
+	Description: "Manages APISIX Consumers.",
 	Attributes: map[string]schema.Attribute{
 		"username": schema.StringAttribute{
 			Description: "Name and Identifier of the Consumer.",

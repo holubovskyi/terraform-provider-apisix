@@ -26,7 +26,7 @@ type ServiceResourceModel struct {
 }
 
 var ServiceSchema = schema.Schema{
-	Description: "Manages services",
+	Description: "Manages APISIX services.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the service.",

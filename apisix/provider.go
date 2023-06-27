@@ -52,7 +52,7 @@ func (p *apisixProvider) Metadata(_ context.Context, _ provider.MetadataRequest,
 // Schema defines the provider-level schema for configuration data.
 func (p *apisixProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Interact with HashiCups.",
+		Description: "Interact with APISIX API.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				Description: "Endpoint for APISIX API. May also be provided via APISIX_ENDPOINT environment variable.",

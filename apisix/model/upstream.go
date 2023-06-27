@@ -40,7 +40,7 @@ type UpstreamResourceModel struct {
 }
 
 var UpstreamSchema = schema.Schema{
-	Description: "Manages upstreams.",
+	Description: "Manages APISIX Upstreams.",
 	Attributes: map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Identifier of the upstream.",
