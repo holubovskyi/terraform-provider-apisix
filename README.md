@@ -52,6 +52,23 @@ provider_installation {
 
 ```
 
+### Locally installed provider configuration
+Use the folloving provider configration block for the locally installed provider
+```terraform
+terraform {
+  required_providers {
+    apisix = {
+      source = "hashicorp.com/edu/apisix"
+    }
+  }
+}
+
+provider "apisix" {
+  endpoint = "http://127.0.0.1:9180"
+  api_key  = "edd1c9f034335f136f87ad84b625c8f1"
+}
+```
+
 ### Start Apache APISIX locally
 You can start local APISIX instance using the provided Docker Compose file. The file was adapted from the [apisix-docker repository](https://github.com/apache/apisix-docker/blob/master/example/docker-compose.yml).
 
@@ -72,21 +89,4 @@ The response indicates that apisix is running successfully:
 ```json
 {"total":0,"list":[]}
 ```
-The credentials for the test user are defined in the `docker_compose/apisix_conf/config.yaml` file
-
-### Locally installed provider configuration
-Use the folloving provider configration block for the locally installed provider
-```terraform
-terraform {
-  required_providers {
-    apisix = {
-      source = "hashicorp.com/edu/apisix"
-    }
-  }
-}
-
-provider "apisix" {
-  endpoint = "http://127.0.0.1:9180"
-  api_key  = "edd1c9f034335f136f87ad84b625c8f1"
-}
-```
+The credentials for the test user are defined in the `docker_compose/apisix_conf/config.yaml` file.
