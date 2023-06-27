@@ -13,17 +13,6 @@ Manages APISIX services.
 ## Example Usage
 
 ```terraform
-resource "apisix_upstream" "example" {
-  type = "roundrobin"
-  nodes = [
-    {
-      host   = "127.0.0.1"
-      port   = "8080"
-      weight = 1
-    }
-  ]
-}
-
 resource "apisix_service" "example" {
   name  = "Example"
   hosts = ["foo.com", "*.bar.com"]
@@ -31,7 +20,6 @@ resource "apisix_service" "example" {
     "version" = "v1"
   }
   enable_websocket = true
-  upstream_id      = apisix_upstream.example.id
   plugins = jsonencode(
     {
       limit-count = {
