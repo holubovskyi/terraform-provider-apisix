@@ -90,10 +90,10 @@ var SSLCertificateSchema = schema.Schema{
 }
 
 func SSLCertificateFromTerraformToAPI(ctx context.Context, terraformDataModel *SSLCertificateResourceModel) (apiDataModel api_client.SSLCertificate, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
-	apiDataModel.Status = uint(terraformDataModel.Status.ValueInt64())
-	apiDataModel.Certificate = terraformDataModel.Certificate.ValueString()
-	apiDataModel.PrivateKey = terraformDataModel.PrivateKey.ValueString()
-	apiDataModel.Type = terraformDataModel.Type.ValueString()
+	apiDataModel.Status = terraformDataModel.Status.ValueInt64Pointer()
+	apiDataModel.Certificate = terraformDataModel.Certificate.ValueStringPointer()
+	apiDataModel.PrivateKey = terraformDataModel.PrivateKey.ValueStringPointer()
+	apiDataModel.Type = terraformDataModel.Type.ValueStringPointer()
 
 	snisDiag = terraformDataModel.Snis.ElementsAs(ctx, &apiDataModel.SNIs, false)
 	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
@@ -102,12 +102,12 @@ func SSLCertificateFromTerraformToAPI(ctx context.Context, terraformDataModel *S
 }
 
 func SSLCertificateFromAPIToTerraform(ctx context.Context, apiDataModel *api_client.SSLCertificate) (terraformDataModel SSLCertificateResourceModel, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
-	terraformDataModel.ID = types.StringValue(apiDataModel.ID)
-	terraformDataModel.Status = types.Int64Value(int64(apiDataModel.Status))
-	terraformDataModel.Certificate = types.StringValue(apiDataModel.Certificate)
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Status = types.Int64PointerValue(apiDataModel.Status)
+	terraformDataModel.Certificate = types.StringPointerValue(apiDataModel.Certificate)
 	// APISIX API returns the private key in base64 form
 	//terraformDataModel.PrivateKey = types.StringValue(apiDataModel.PrivateKey)
-	terraformDataModel.Type = types.StringValue(apiDataModel.Type)
+	terraformDataModel.Type = types.StringPointerValue(apiDataModel.Type)
 
 	terraformDataModel.Snis, snisDiag = types.ListValueFrom(ctx, types.StringType, apiDataModel.SNIs)
 	terraformDataModel.Labels, labelsDiag = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
