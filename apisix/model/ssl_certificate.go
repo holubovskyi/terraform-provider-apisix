@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -20,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // SSLCertificateResourceModel maps the resource schema data.
@@ -89,30 +89,38 @@ var SSLCertificateSchema = schema.Schema{
 	},
 }
 
-func SSLCertificateFromTerraformToAPI(ctx context.Context, terraformDataModel *SSLCertificateResourceModel) (apiDataModel api_client.SSLCertificate, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
-	apiDataModel.Status = uint(terraformDataModel.Status.ValueInt64())
-	apiDataModel.Certificate = terraformDataModel.Certificate.ValueString()
-	apiDataModel.PrivateKey = terraformDataModel.PrivateKey.ValueString()
-	apiDataModel.Type = terraformDataModel.Type.ValueString()
+func SSLCertificateFromTerraformToAPI(ctx context.Context, terraformDataModel *SSLCertificateResourceModel) (apiDataModel api_client.SSLCertificate) {
+	apiDataModel.Status = terraformDataModel.Status.ValueInt64Pointer()
+	apiDataModel.Certificate = terraformDataModel.Certificate.ValueStringPointer()
+	apiDataModel.PrivateKey = terraformDataModel.PrivateKey.ValueStringPointer()
+	apiDataModel.Type = terraformDataModel.Type.ValueStringPointer()
 
-	snisDiag = terraformDataModel.Snis.ElementsAs(ctx, &apiDataModel.SNIs, false)
-	labelsDiag = terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
+	terraformDataModel.Snis.ElementsAs(ctx, &apiDataModel.SNIs, false)
+	terraformDataModel.Labels.ElementsAs(ctx, &apiDataModel.Labels, false)
 
-	return apiDataModel, snisDiag, labelsDiag
+	tflog.Debug(ctx, "Result of the SSLCertificateFromTerraformToAPI", map[string]any{
+		"Values": apiDataModel,
+	})
+
+	return apiDataModel
 }
 
-func SSLCertificateFromAPIToTerraform(ctx context.Context, apiDataModel *api_client.SSLCertificate) (terraformDataModel SSLCertificateResourceModel, snisDiag diag.Diagnostics, labelsDiag diag.Diagnostics) {
-	terraformDataModel.ID = types.StringValue(apiDataModel.ID)
-	terraformDataModel.Status = types.Int64Value(int64(apiDataModel.Status))
-	terraformDataModel.Certificate = types.StringValue(apiDataModel.Certificate)
+func SSLCertificateFromAPIToTerraform(ctx context.Context, apiDataModel *api_client.SSLCertificate) (terraformDataModel SSLCertificateResourceModel) {
+	terraformDataModel.ID = types.StringPointerValue(apiDataModel.ID)
+	terraformDataModel.Status = types.Int64PointerValue(apiDataModel.Status)
+	terraformDataModel.Certificate = types.StringPointerValue(apiDataModel.Certificate)
 	// APISIX API returns the private key in base64 form
 	//terraformDataModel.PrivateKey = types.StringValue(apiDataModel.PrivateKey)
-	terraformDataModel.Type = types.StringValue(apiDataModel.Type)
+	terraformDataModel.Type = types.StringPointerValue(apiDataModel.Type)
 
-	terraformDataModel.Snis, snisDiag = types.ListValueFrom(ctx, types.StringType, apiDataModel.SNIs)
-	terraformDataModel.Labels, labelsDiag = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
+	terraformDataModel.Snis, _ = types.ListValueFrom(ctx, types.StringType, apiDataModel.SNIs)
+	terraformDataModel.Labels, _ = types.MapValueFrom(ctx, types.StringType, apiDataModel.Labels)
 
-	return terraformDataModel, snisDiag, labelsDiag
+	tflog.Debug(ctx, "Result of the SSLCertificateFromAPIToTerraform", map[string]any{
+		"Values": terraformDataModel,
+	})
+
+	return terraformDataModel
 }
 
 // Get SNIS list from the certificate
