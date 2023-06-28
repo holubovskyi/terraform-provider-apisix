@@ -1,3 +1,6 @@
+# The project is archived
+Development continues in the https://github.com/rework-space-com/terraform-provider-apisix
+
 # Terraform APISIX Provider
 
 ## Build provider
